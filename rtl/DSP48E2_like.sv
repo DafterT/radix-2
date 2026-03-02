@@ -85,8 +85,7 @@ module DSP48E2_like #(
     localparam int M_W = 27 + 18; // 45
     logic signed [M_W-1:0] m_comb, m_q;
 
-    (* use_dsp = "yes" *)
-    always_comb m_comb = pre_q * b2_q;
+    assign m_comb = pre_q * b2_q;
 
     always_ff @(posedge clk) begin
         if (rst) m_q <= '0;
@@ -95,7 +94,7 @@ module DSP48E2_like #(
 
     // Расширение знака
     logic signed [47:0] m_p;
-    always_comb m_p = {{(48-M_W){m_q[M_W-1]}}, m_q};
+    assign m_p = {{(48-M_W){m_q[M_W-1]}}, m_q};
 
     // ------------------------------------------------------------
     // Post-adder and final output register
@@ -105,14 +104,12 @@ module DSP48E2_like #(
     generate
         if (POSTADD_EN) begin : gen_post
             if (POSTADD_SUB) begin : gen_post_sub
-                (* use_dsp = "yes" *)
-                always_comb post_comb = m_p - C;
+                assign post_comb = m_p - C;
             end else begin : gen_post_add
-                (* use_dsp = "yes" *)
-                always_comb post_comb = m_p + C;
+                assign post_comb = m_p + C;
             end
         end else begin : gen_no_post
-            always_comb post_comb = m_p;
+            assign post_comb = m_p;
         end
     endgenerate
 
