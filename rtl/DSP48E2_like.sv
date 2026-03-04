@@ -104,9 +104,9 @@ module DSP48E2_like #(
     generate
         if (POSTADD_EN) begin : gen_post
             if (POSTADD_SUB) begin : gen_post_sub
-                assign post_comb = m_p - C;
+                assign post_comb = C - m_p;
             end else begin : gen_post_add
-                assign post_comb = m_p + C;
+                assign post_comb = C + m_p;
             end
         end else begin : gen_no_post
             assign post_comb = m_p;
