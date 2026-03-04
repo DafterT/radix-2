@@ -1,0 +1,10 @@
+# Vectors from model/dpi_complex_fixed_test.c (t1..t3)
+
+# t1: a=(re=3, im=2), b=(re=24576, im=-4096)
+00020003 f0006000
+
+# t2: a=(re=-7, im=4), b=(re=-16384, im=8192)
+0004fff9 2000c000
+
+# t3: a=(re=32767, im=-32768), b=(re=8192, im=8192)
+80007fff 20002000
