@@ -6,7 +6,7 @@ module DSP48E2_like #(
 
     // postadder enable: 
     //      0 => output = Mreg 
-    //      1 => output = (Mreg +- C) через регистр
+    //      1 => output = (C +- Mreg) через регистр
     parameter bit POSTADD_EN  = 1'b0,
 
     // postadder:
