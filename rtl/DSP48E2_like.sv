@@ -108,15 +108,15 @@ module DSP48E2_like #(
             end else begin : gen_post_add
                 assign post_comb = C + m_p;
             end
+
+            // Final register
+            always_ff @(posedge clk) begin
+                if (rst) Y <= '0;
+                else     Y <= post_comb;
+            end
         end else begin : gen_no_post
-            assign post_comb = m_p;
+            assign Y = m_p;
         end
     endgenerate
-
-    // Final register
-    always_ff @(posedge clk) begin
-        if (rst) Y <= '0;
-        else     Y <= post_comb;
-    end
 
 endmodule
