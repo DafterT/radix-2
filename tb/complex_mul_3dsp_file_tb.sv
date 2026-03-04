@@ -1,33 +1,45 @@
 `timescale 1ns/1ps
 
+// Testbench for complex_mul_3dsp.
+// Потоковый режим: новый вектор X/Y подается каждый такт.
+// Проверка выхода выполняется с задержкой OUTPUT_OFFSET_CYCLES.
+// Формат комплексного входа в файле: {imag[31:16], real[15:0]}.
 module complex_mul_3dsp_file_tb #(
-    parameter int RESET_CYCLES  = 4,
-    parameter int CLK_PERIOD_NS = 10,
-    parameter int OUTPUT_OFFSET_CYCLES = 4
+    parameter int RESET_CYCLES  = 4,  // Количество тактов удержания rst=1
+    parameter int CLK_PERIOD_NS = 10, // Период clk в ns
+    parameter int OUTPUT_OFFSET_CYCLES = 4 // Латентность DUT в тактах
 );
 
     localparam int HALF_CLK_PERIOD_NS  = CLK_PERIOD_NS / 2;
+    // Индекс "хвоста" pipeline ожидаемых значений (точка сравнения с DUT).
     localparam int PIPE_LAST = OUTPUT_OFFSET_CYCLES - 1;
 
     logic clk;
     logic rst;
 
+    // Интерфейс DUT.
     logic signed [31:0] x;
     logic signed [31:0] y;
     logic signed [31:0] out_re;
     logic signed [31:0] out_im;
 
+    // Служебные переменные для чтения файла и статистики.
     integer file_desc;
     integer scan_status;
     integer vectors_count;
     integer fails_count;
 
+    // Буферы сырых/приведенных входных значений.
     logic [31:0] x_raw;
     logic [31:0] y_raw;
     logic signed [31:0] x_vec;
     logic signed [31:0] y_vec;
     reg [1023:0] skipped_line;
 
+    // Pipeline ожидаемых результатов на OUTPUT_OFFSET_CYCLES стадий.
+    // valid_pipe[i] показывает, что в стадии i есть валидный вектор.
+    // id_pipe/x_pipe/y_pipe нужны для удобного PASS/FAIL лога.
+    // exp_re_pipe/exp_im_pipe хранят эталон для сравнения с выходом DUT.
     logic                   valid_pipe [0:PIPE_LAST];
     integer                 id_pipe    [0:PIPE_LAST];
     logic signed [31:0]     x_pipe     [0:PIPE_LAST];
@@ -38,6 +50,9 @@ module complex_mul_3dsp_file_tb #(
     reg [1023:0] input_file;
     reg [1023:0] dumpfile;
 
+    // Эталонная действительная часть:
+    // Re = ar*br - ai*bi
+    // Q16.0 * Q2.14 => Q18.14 (signed [31:0]).
     function automatic logic signed [31:0] calc_expected_re(
         input logic signed [31:0] x_in,
         input logic signed [31:0] y_in
@@ -57,6 +72,9 @@ module complex_mul_3dsp_file_tb #(
         end
     endfunction
 
+    // Эталонная мнимая часть:
+    // Im = ar*bi + ai*br
+    // Q16.0 * Q2.14 => Q18.14 (signed [31:0]).
     function automatic logic signed [31:0] calc_expected_im(
         input logic signed [31:0] x_in,
         input logic signed [31:0] y_in
@@ -76,6 +94,7 @@ module complex_mul_3dsp_file_tb #(
         end
     endfunction
 
+    // Загружает вход DUT на текущий такт.
     task automatic drive_vector(
         input logic signed [31:0] x_in,
         input logic signed [31:0] y_in
@@ -95,9 +114,12 @@ module complex_mul_3dsp_file_tb #(
         .out_im(out_im)
     );
 
+    // Генерация тактового сигнала.
     initial clk = 1'b0;
     always #(HALF_CLK_PERIOD_NS) clk = ~clk;
 
+    // Включение VCD по плюсаргам:
+    // +dump и опционально +dumpfile=<path>.
     initial begin
         if (!$value$plusargs("dumpfile=%s", dumpfile))
             dumpfile = "tb/build/complex_mul_3dsp_file_tb.vcd";
@@ -109,6 +131,11 @@ module complex_mul_3dsp_file_tb #(
         end
     end
 
+    // Основной сценарий TB:
+    // 1) reset + инициализация pipeline;
+    // 2) каждый цикл подаем новый вектор;
+    // 3) сравниваем выход DUT с "хвостом" pipeline эталонов;
+    // 4) после EOF делаем flush и завершаем тест.
     initial begin
         bit got_vector;
         bit eof_reached;
@@ -116,6 +143,7 @@ module complex_mul_3dsp_file_tb #(
         integer flush_left;
         int i;
 
+        // Начальная инициализация.
         rst         = 1'b1;
         x           = '0;
         y           = '0;
@@ -125,6 +153,7 @@ module complex_mul_3dsp_file_tb #(
         done          = 1'b0;
         flush_left    = OUTPUT_OFFSET_CYCLES;
 
+        // Очистка pipeline ожидаемых результатов.
         for (i = 0; i < OUTPUT_OFFSET_CYCLES; i++) begin
             valid_pipe[i]  = 1'b0;
             id_pipe[i]     = 0;
@@ -154,6 +183,7 @@ module complex_mul_3dsp_file_tb #(
         while (!done) begin
             @(negedge clk);
 
+            // Шаг 1: проверяем текущий выход DUT против хвоста pipeline.
             if (valid_pipe[PIPE_LAST]) begin
                 if ((out_re !== exp_re_pipe[PIPE_LAST]) || (out_im !== exp_im_pipe[PIPE_LAST])) begin
                     fails_count = fails_count + 1;
@@ -179,6 +209,7 @@ module complex_mul_3dsp_file_tb #(
                 end
             end
 
+            // Шаг 2: сдвигаем pipeline на одну стадию вперед.
             for (i = PIPE_LAST; i > 0; i--) begin
                 valid_pipe[i]  = valid_pipe[i-1];
                 id_pipe[i]     = id_pipe[i-1];
@@ -188,6 +219,8 @@ module complex_mul_3dsp_file_tb #(
                 exp_im_pipe[i] = exp_im_pipe[i-1];
             end
 
+            // Шаг 3: stage0 по умолчанию делаем пустым.
+            // Если ниже успешно прочитаем новый вектор, stage0 перезапишется.
             valid_pipe[0]  = 1'b0;
             id_pipe[0]     = 0;
             x_pipe[0]      = '0;
@@ -196,6 +229,8 @@ module complex_mul_3dsp_file_tb #(
             exp_im_pipe[0] = '0;
 
             if (!eof_reached) begin
+                // Шаг 4: читаем следующий валидный вектор из файла.
+                // Невалидные/комментные строки пропускаются.
                 got_vector = 1'b0;
                 while (!got_vector && !$feof(file_desc)) begin
                     scan_status = $fscanf(file_desc, "%h %h\n", x_raw, y_raw);
@@ -207,6 +242,7 @@ module complex_mul_3dsp_file_tb #(
                 end
 
                 if (got_vector) begin
+                    // Шаг 5: подаем вектор в DUT и кладем эталон в stage0.
                     x_vec = $signed(x_raw);
                     y_vec = $signed(y_raw);
                     vectors_count = vectors_count + 1;
@@ -220,6 +256,7 @@ module complex_mul_3dsp_file_tb #(
                     exp_re_pipe[0] = calc_expected_re(x_vec, y_vec);
                     exp_im_pipe[0] = calc_expected_im(x_vec, y_vec);
                 end else begin
+                    // Шаг 6: EOF достигнут, начинаем flush pipeline нулями.
                     eof_reached = 1'b1;
                     drive_vector('0, '0);
                     flush_left = flush_left - 1;
@@ -227,6 +264,7 @@ module complex_mul_3dsp_file_tb #(
                         done = 1'b1;
                 end
             end else begin
+                // Продолжаем flush до полного выхода всех валидных стадий.
                 drive_vector('0, '0);
                 flush_left = flush_left - 1;
                 if (flush_left == 0)
@@ -234,9 +272,11 @@ module complex_mul_3dsp_file_tb #(
             end
         end
 
+        // Финал теста: закрываем файл и выдаем итог.
         $fclose(file_desc);
 
         $display("DONE: vectors=%0d fails=%0d", vectors_count, fails_count);
+        // Ненулевой fails_count делает тест fail.
         if (fails_count != 0) begin
             $fatal(1, "complex_mul_3dsp_file_tb: FAILED");
         end
