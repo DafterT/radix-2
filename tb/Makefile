@@ -43,13 +43,26 @@ IVFLAGS_MUL := $(IVFLAGS_COMMON)
 IVFLAGS_MUL += -P $(TOP_MUL).RESET_CYCLES=$(RESET_CYCLES)
 IVFLAGS_MUL += -P $(TOP_MUL).OUTPUT_OFFSET_CYCLES=$(MUL_OUTPUT_OFFSET_CYCLES)
 
-.PHONY: all dsp mul run-all wave-all build-dsp run-dsp wave-dsp build-mul run-mul wave-mul run wave clean
+# -------------------------------
+# convergent_rounding_tb settings
+# -------------------------------
+TOP_ROUND := convergent_rounding_tb
+TB_ROUND := $(THIS_DIR)/$(TOP_ROUND).sv
+RTL_ROUND := $(ROOT_DIR)/rtl/convergent_rounding.sv
+SIMV_ROUND := $(BUILD_DIR)/$(TOP_ROUND).vvp
+VCD_ROUND ?= $(BUILD_DIR)/$(TOP_ROUND).vcd
+
+IVFLAGS_ROUND := $(IVFLAGS_COMMON)
+
+.PHONY: all dsp mul round run-all wave-all build-dsp run-dsp wave-dsp build-mul run-mul wave-mul build-round run-round wave-round run wave clean
 
 all: run-all
 
 dsp: run-dsp
 
 mul: run-mul
+
+round: run-round
 
 build-dsp:
 	mkdir -p $(BUILD_DIR)
@@ -73,9 +86,20 @@ wave-mul: build-mul
 	$(VVP) $(SIMV_MUL) +infile=$(INFILE_MUL) +dump +dumpfile=$(VCD_MUL)
 	@echo "VCD generated: $(VCD_MUL)"
 
-run-all: run-dsp run-mul
+build-round:
+	mkdir -p $(BUILD_DIR)
+	$(IVERILOG) $(IVFLAGS_ROUND) -o $(SIMV_ROUND) $(TB_ROUND) $(RTL_ROUND)
 
-wave-all: wave-dsp wave-mul
+run-round: build-round
+	$(VVP) $(SIMV_ROUND)
+
+wave-round: build-round
+	$(VVP) $(SIMV_ROUND) +dump +dumpfile=$(VCD_ROUND)
+	@echo "VCD generated: $(VCD_ROUND)"
+
+run-all: run-dsp run-mul run-round
+
+wave-all: wave-dsp wave-mul wave-round
 
 # Backward compatibility with old single-test flow.
 run: run-dsp
