@@ -21,7 +21,12 @@ module convergent_rounding
     localparam int TRUNC = IWID - OWID;
 
     // Проверка параметров
-    initial if (IWID <= OWID) $error("Convergent_rounding: IWID must be greater than OWID");
+    initial begin
+        if (IWID <= OWID)
+            $error("Convergent_rounding: IWID must be greater than OWID");
+        if (OWID < 2)
+            $error("Convergent_rounding: OWID must be at least 2");
+    end
 
     logic signed [IWID-1:0] w_convergent;
 
