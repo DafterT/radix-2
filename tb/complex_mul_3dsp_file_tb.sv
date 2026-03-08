@@ -164,7 +164,7 @@ module complex_mul_3dsp_file_tb #(
         end
 
         if (!$value$plusargs("infile=%s", input_file))
-            input_file = "tb/input_complex_vectors.txt";
+            input_file = "tb/input/input_complex_vectors.txt";
 
         file_desc = $fopen(input_file, "r");
         if (file_desc == 0) begin

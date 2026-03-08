@@ -5,6 +5,7 @@ THIS_DIR := $(patsubst %/,%,$(abspath $(dir $(lastword $(MAKEFILE_LIST)))))
 ROOT_DIR := $(abspath $(THIS_DIR)/..)
 
 BUILD_DIR ?= $(THIS_DIR)/build
+INPUT_DIR ?= $(THIS_DIR)/input
 IVFLAGS_COMMON := -g2012 -Wall
 
 # -----------------------------
@@ -15,7 +16,7 @@ TB_DSP := $(THIS_DIR)/$(TOP_DSP).sv
 RTL_DSP := $(ROOT_DIR)/rtl/DSP48E2_like.sv
 SIMV_DSP := $(BUILD_DIR)/$(TOP_DSP).vvp
 VCD_DSP ?= $(BUILD_DIR)/$(TOP_DSP).vcd
-INFILE_DSP ?= $(THIS_DIR)/input_vectors.txt
+INFILE_DSP ?= $(INPUT_DIR)/input_vectors.txt
 
 PREADD_SUB ?= 0
 POSTADD_EN ?= 1
@@ -37,7 +38,7 @@ TB_MUL := $(THIS_DIR)/$(TOP_MUL).sv
 RTL_MUL := $(ROOT_DIR)/rtl/DSP48E2_like.sv $(ROOT_DIR)/rtl/complex_mul_3dsp.sv
 SIMV_MUL := $(BUILD_DIR)/$(TOP_MUL).vvp
 VCD_MUL ?= $(BUILD_DIR)/$(TOP_MUL).vcd
-INFILE_MUL ?= $(THIS_DIR)/input_complex_vectors.txt
+INFILE_MUL ?= $(INPUT_DIR)/input_complex_vectors.txt
 
 IVFLAGS_MUL := $(IVFLAGS_COMMON)
 IVFLAGS_MUL += -P $(TOP_MUL).RESET_CYCLES=$(RESET_CYCLES)

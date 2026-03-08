@@ -119,7 +119,7 @@ module DSP48E2_like_file_tb #(
         vectors_count = 0;
 
         if (!$value$plusargs("infile=%s", input_file))
-            input_file = "tb/input_vectors.txt";
+            input_file = "tb/input/input_vectors.txt";
 
         file_desc = $fopen(input_file, "r");
         if (file_desc == 0) begin
