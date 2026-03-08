@@ -4,7 +4,7 @@
 // Данный модуль реализует банковское округление (round half to even)
 // при уменьшении разрядности фиксированного числа.
 //
-// Используемая формула округления заимствованы из статьи:
+// Используемая формула округления заимствована из статьи:
 // https://zipcpu.com/dsp/2017/07/22/rounding.html
 //------------------------------------------------------------------------------
 
@@ -14,8 +14,8 @@ module convergent_rounding
     parameter int OWID = 18  // Выходная ширина
 )
 (
-    input  logic [IWID-1:0] i_data,
-    output logic [OWID-1:0] o_data
+    input  logic signed [IWID-1:0] i_data,
+    output logic signed [OWID-1:0] o_data
 );
 
     localparam int TRUNC = IWID - OWID;
@@ -23,7 +23,7 @@ module convergent_rounding
     // Проверка параметров
     initial if (IWID <= OWID) $error("Convergent_rounding: IWID must be greater than OWID");
 
-    logic [IWID-1:0] w_convergent;
+    logic signed [IWID-1:0] w_convergent;
 
     assign w_convergent =
         i_data
