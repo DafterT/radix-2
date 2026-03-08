@@ -54,7 +54,18 @@ VCD_ROUND ?= $(BUILD_DIR)/$(TOP_ROUND).vcd
 
 IVFLAGS_ROUND := $(IVFLAGS_COMMON)
 
-.PHONY: all dsp mul round run-all wave-all build-dsp run-dsp wave-dsp build-mul run-mul wave-mul build-round run-round wave-round run wave clean
+# -------------------------------
+# symmetric_clip_tb settings
+# -------------------------------
+TOP_CLIP := symmetric_clip_tb
+TB_CLIP := $(THIS_DIR)/$(TOP_CLIP).sv
+RTL_CLIP := $(ROOT_DIR)/rtl/symmetric_clip.sv
+SIMV_CLIP := $(BUILD_DIR)/$(TOP_CLIP).vvp
+VCD_CLIP ?= $(BUILD_DIR)/$(TOP_CLIP).vcd
+
+IVFLAGS_CLIP := $(IVFLAGS_COMMON)
+
+.PHONY: all dsp mul round clip run-all wave-all build-dsp run-dsp wave-dsp build-mul run-mul wave-mul build-round run-round wave-round build-clip run-clip wave-clip run wave clean
 
 all: run-all
 
@@ -63,6 +74,8 @@ dsp: run-dsp
 mul: run-mul
 
 round: run-round
+
+clip: run-clip
 
 build-dsp:
 	mkdir -p $(BUILD_DIR)
@@ -97,9 +110,20 @@ wave-round: build-round
 	$(VVP) $(SIMV_ROUND) +dump +dumpfile=$(VCD_ROUND)
 	@echo "VCD generated: $(VCD_ROUND)"
 
-run-all: run-dsp run-mul run-round
+build-clip:
+	mkdir -p $(BUILD_DIR)
+	$(IVERILOG) $(IVFLAGS_CLIP) -o $(SIMV_CLIP) $(TB_CLIP) $(RTL_CLIP)
 
-wave-all: wave-dsp wave-mul wave-round
+run-clip: build-clip
+	$(VVP) $(SIMV_CLIP)
+
+wave-clip: build-clip
+	$(VVP) $(SIMV_CLIP) +dump +dumpfile=$(VCD_CLIP)
+	@echo "VCD generated: $(VCD_CLIP)"
+
+run-all: run-dsp run-mul run-round run-clip
+
+wave-all: wave-dsp wave-mul wave-round wave-clip
 
 # Backward compatibility with old single-test flow.
 run: run-dsp
