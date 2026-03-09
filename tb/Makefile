@@ -66,7 +66,25 @@ VCD_CLIP ?= $(BUILD_DIR)/$(TOP_CLIP).vcd
 
 IVFLAGS_CLIP := $(IVFLAGS_COMMON)
 
-.PHONY: all dsp mul round clip run-all wave-all build-dsp run-dsp wave-dsp build-mul run-mul wave-mul build-round run-round wave-round build-clip run-clip wave-clip run wave clean
+# -------------------------------
+# fft_twiddle_rom_tb settings
+# -------------------------------
+TOP_TW := fft_twiddle_rom_tb
+TB_TW := $(THIS_DIR)/$(TOP_TW).sv
+RTL_TW := $(ROOT_DIR)/rtl/fft_twiddle_rom.sv
+SIMV_TW := $(BUILD_DIR)/$(TOP_TW).vvp
+VCD_TW ?= $(BUILD_DIR)/$(TOP_TW).vcd
+
+FFT_N ?= 64
+FRAC_BITS ?= 16
+TW_W ?= 18
+
+IVFLAGS_TW := $(IVFLAGS_COMMON)
+IVFLAGS_TW += -P $(TOP_TW).FFT_N=$(FFT_N)
+IVFLAGS_TW += -P $(TOP_TW).FRAC_BITS=$(FRAC_BITS)
+IVFLAGS_TW += -P $(TOP_TW).TW_W=$(TW_W)
+
+.PHONY: all dsp mul round clip twiddle run-all wave-all build-dsp run-dsp wave-dsp build-mul run-mul wave-mul build-round run-round wave-round build-clip run-clip wave-clip build-tw run-tw wave-tw run wave clean
 
 all: run-all
 
@@ -77,6 +95,8 @@ mul: run-mul
 round: run-round
 
 clip: run-clip
+
+twiddle: run-tw
 
 build-dsp:
 	mkdir -p $(BUILD_DIR)
@@ -122,9 +142,20 @@ wave-clip: build-clip
 	$(VVP) $(SIMV_CLIP) +dump +dumpfile=$(VCD_CLIP)
 	@echo "VCD generated: $(VCD_CLIP)"
 
-run-all: run-dsp run-mul run-round run-clip
+build-tw:
+	mkdir -p $(BUILD_DIR)
+	$(IVERILOG) $(IVFLAGS_TW) -o $(SIMV_TW) $(TB_TW) $(RTL_TW)
 
-wave-all: wave-dsp wave-mul wave-round wave-clip
+run-tw: build-tw
+	$(VVP) $(SIMV_TW)
+
+wave-tw: build-tw
+	$(VVP) $(SIMV_TW) +dump +dumpfile=$(VCD_TW)
+	@echo "VCD generated: $(VCD_TW)"
+
+run-all: run-dsp run-mul run-round run-clip run-tw
+
+wave-all: wave-dsp wave-mul wave-round wave-clip wave-tw
 
 # Backward compatibility with old single-test flow.
 run: run-dsp
