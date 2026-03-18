@@ -60,7 +60,7 @@ module radix2_top_tb
     bit pending_expected;
     bit done;
 
-    reg [1023:0] dumpfile;
+    string dumpfile;
 
     radix2_top #(
         .FFT_N      (FFT_N),
@@ -69,7 +69,7 @@ module radix2_top_tb
     ) dut (
         .clk    (clk),
         .rst    (rst),
-        .iq     (iq),
+        .iq     ($unsigned(iq)),
         .valid_i(valid_i),
         .last_i (last_i),
         .im     (im),
@@ -82,7 +82,7 @@ module radix2_top_tb
         input logic signed [15:0] re_in
     );
         begin
-            pack_complex = {im_in, re_in};
+            pack_complex = $signed({im_in, re_in});
         end
     endfunction
 
@@ -91,7 +91,7 @@ module radix2_top_tb
         real             fractional_part;
     begin
         integer_part    = $unsigned(longint'($rtoi(value)));
-        fractional_part = value - integer_part;
+        fractional_part = value - real'(integer_part);
 
         if (fractional_part < (0.5 - EPS)) begin
             bankers_round_positive = integer_part;
@@ -120,11 +120,11 @@ module radix2_top_tb
         scaled_abs_x      = abs_x * (1 << FRAC_BITS);
         rounded_magnitude = bankers_round_positive(scaled_abs_x);
 
-        signed_result = rounded_magnitude;
+        signed_result = longint'(rounded_magnitude);
         if (is_negative)
             signed_result = -signed_result;
 
-        real_to_fixed_bankers = signed_result[TW_W-1:0];
+        real_to_fixed_bankers = $signed(signed_result[TW_W-1:0]);
     end
     endfunction
 
@@ -145,19 +145,18 @@ module radix2_top_tb
     begin
         angle = 2.0 * PI * $itor(addr) / $itor(FFT_N);
         re_v  = $cos(angle);
+        im_v = -$sin(angle);
 
         if (TW_GEN_MODE == TW_GEN_MODE_TWMEMINIT) begin
-            im_v = $sin(angle);
-            twiddle_at_addr = {
+            twiddle_at_addr = pack_complex(
                 real_to_fixed_cast(im_v),
                 real_to_fixed_cast(re_v)
-            };
+            );
         end else begin
-            im_v = -$sin(angle);
-            twiddle_at_addr = {
+            twiddle_at_addr = pack_complex(
                 real_to_fixed_bankers(im_v),
                 real_to_fixed_bankers(re_v)
-            };
+            );
         end
     end
     endfunction
@@ -212,16 +211,17 @@ module radix2_top_tb
         input logic signed [31:0] i_data
     );
         logic signed [31:0] w_convergent;
+        logic signed [31:0] round_bias;
     begin
-        w_convergent =
-            i_data
-            + {
-                {ROUND_OWID{1'b0}},
-                i_data[ROUND_TRUNC],
-                {(ROUND_TRUNC-1){!i_data[ROUND_TRUNC]}}
-              };
+        round_bias = $signed({
+            {ROUND_OWID{1'b0}},
+            i_data[ROUND_TRUNC],
+            {(ROUND_TRUNC-1){!i_data[ROUND_TRUNC]}}
+        });
 
-        round_convergent_ref = w_convergent[31:ROUND_TRUNC];
+        w_convergent = i_data + round_bias;
+
+        round_convergent_ref = $signed(w_convergent[31:ROUND_TRUNC]);
     end
     endfunction
 
