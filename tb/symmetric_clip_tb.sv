@@ -21,7 +21,7 @@ module symmetric_clip_tb;
     int raw_idx;
     int fails_count;
 
-    reg [1023:0] dumpfile;
+    string dumpfile;
 
     symmetric_clip #(
         .IWID(IWID),
@@ -48,10 +48,12 @@ module symmetric_clip_tb;
     endfunction
 
     task automatic init_vectors;
+        logic [IWID-1:0] raw_code;
         begin
             // Exhaustive test: all 32 codes of 5-bit signed input.
             for (raw_idx = 0; raw_idx < NUM_TESTS; raw_idx = raw_idx + 1) begin
-                test_input[raw_idx] = raw_idx[IWID-1:0];
+                raw_code = raw_idx[IWID-1:0];
+                test_input[raw_idx] = $signed(raw_code);
                 test_expected[raw_idx] = clip_ref(test_input[raw_idx]);
             end
         end
