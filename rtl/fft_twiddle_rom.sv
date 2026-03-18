@@ -102,11 +102,13 @@ module fft_twiddle_rom
     endfunction
 
     function automatic logic [2*TW_W-1:0] twiddle_twmeminit(input int idx);
+        real angel;
         real data_real;
         real data_imag;
     begin
-        data_real = $cos(2.0 * PI * $itor(idx) / $itor(FFT_N));
-        data_imag = $sin(2.0 * PI * $itor(idx) / $itor(FFT_N));
+        angel     = 2.0 * PI * $itor(idx) / $itor(FFT_N);
+        data_real =  $cos(angel);
+        data_imag = -$sin(angel);
 
         twiddle_twmeminit = {
             real_to_fixed_cast(data_imag),

@@ -74,7 +74,7 @@ module fft_twiddle_rom_tb #(
             @(posedge clk);
             #1;
             $display(
-                "%0d %0d 0x%0h %0d %0.8f %0d %0.8f",
+                "%0d %0d 0x%0h %0d %0.14f %0d %0.14f",
                 idx,
                 addr,
                 w,
