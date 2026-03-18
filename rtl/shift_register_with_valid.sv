@@ -1,3 +1,5 @@
+`timescale 1ns/1ps
+
 module shift_register_with_valid
 # (
     parameter width = 8, depth = 8

@@ -3,50 +3,43 @@
 module radix2_top
 #(
     parameter int FFT_N      = 64,
-    parameter int FRAC_BITS  = 14,
-    parameter int TW_W       = 16,
-    parameter int ROUND_OWID = 18,
-    parameter int OUT_W      = 16
+    parameter int ROUND_OWID = 18
 )
 (
-    input  logic              clk,
-    input  logic              rst,
-    input  logic signed [31:0] iq,
-    input  logic              valid_i,
-    input  logic              last_i,
+    input  logic               clk,
+    input  logic               rst,
+    input  logic        [31:0] iq,
+    input  logic               valid_i,
+    input  logic               last_i,
     output logic signed [15:0] im,
     output logic signed [15:0] re,
-    output logic              valid_o
+    output logic               valid_o
 );
 
-    localparam int VALID_LATENCY = 5;
-    localparam int ADDR_W        = $clog2(FFT_N / 2);
+    localparam int PACKED_COMPLEX_W  = 32;
+    localparam int MUL_OUT_W         = PACKED_COMPLEX_W;
+    localparam int INPUT_ALIGN_DEPTH = 1;
+    localparam int VALID_PIPE_STAGES = 4;
+    localparam int ADDR_W            = $clog2(FFT_N / 2);
+    localparam int OUT_W             = 16;
+    localparam int FRAC_BITS         = 14;
+    localparam int TW_W              = 16;
+    localparam int TWIDDLE_PACK_W    = 2 * TW_W;
 
-    logic                       iq_aligned_vld;
-    logic signed [31:0]         iq_aligned;
-    logic [ADDR_W-1:0]          twiddle_addr;
-    logic signed [2*TW_W-1:0]   twiddle_rom;
-    logic signed [31:0]         twiddle_mul;
-    logic signed [31:0]         mul_re;
-    logic signed [31:0]         mul_im;
-    logic signed [ROUND_OWID-1:0] round_re;
-    logic signed [ROUND_OWID-1:0] round_im;
-    logic [VALID_LATENCY-1:0]   valid_pipe;
-
-    initial begin
-        if (FRAC_BITS != 14)
-            $fatal(1, "radix2_top: FRAC_BITS must be 14 to match complex_mul_3dsp Q2.14 input");
-
-        if (TW_W != 16)
-            $fatal(1, "radix2_top: TW_W must be 16 to match complex_mul_3dsp packed twiddle input");
-
-        if (OUT_W != 16)
-            $fatal(1, "radix2_top: OUT_W must be 16 for the current top-level interface");
-    end
+    logic                                iq_aligned_vld;
+    logic        [PACKED_COMPLEX_W-1:0]  iq_aligned;
+    logic        [ADDR_W-1:0]            twiddle_addr;
+    logic        [TWIDDLE_PACK_W-1:0]    twiddle_rom;
+    logic        [PACKED_COMPLEX_W-1:0]  twiddle_mul;
+    logic signed [MUL_OUT_W-1:0]         mul_re;
+    logic signed [MUL_OUT_W-1:0]         mul_im;
+    logic signed [ROUND_OWID-1:0]        round_re;
+    logic signed [ROUND_OWID-1:0]        round_im;
+    logic        [VALID_PIPE_STAGES-1:0] valid_pipe;
 
     shift_register_with_valid #(
-        .width(32),
-        .depth(1)
+        .width(PACKED_COMPLEX_W),
+        .depth(INPUT_ALIGN_DEPTH)
     ) u_input_delay (
         .clk     (clk),
         .rst     (rst),
@@ -88,7 +81,7 @@ module radix2_top
     );
 
     convergent_rounding #(
-        .IWID(32),
+        .IWID(MUL_OUT_W),
         .OWID(ROUND_OWID)
     ) u_round_re (
         .i_data(mul_re),
@@ -96,7 +89,7 @@ module radix2_top
     );
 
     convergent_rounding #(
-        .IWID(32),
+        .IWID(MUL_OUT_W),
         .OWID(ROUND_OWID)
     ) u_round_im (
         .i_data(mul_im),
@@ -123,12 +116,12 @@ module radix2_top
         if (rst) begin
             valid_pipe <= '0;
         end else begin
-            valid_pipe[0] <= valid_i;
-            for (int i = 1; i < VALID_LATENCY; i++)
+            valid_pipe[0] <= iq_aligned_vld;
+            for (int i = 1; i < VALID_PIPE_STAGES; i++)
                 valid_pipe[i] <= valid_pipe[i-1];
         end
     end
 
-    assign valid_o = valid_pipe[VALID_LATENCY - 1];
+    assign valid_o = valid_pipe[VALID_PIPE_STAGES - 1];
 
 endmodule

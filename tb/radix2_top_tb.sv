@@ -15,6 +15,7 @@ module radix2_top_tb
 
     localparam int DEPTH               = FFT_N / 2;
     localparam int ADDR_W              = $clog2(DEPTH);
+    localparam logic [ADDR_W-1:0] LAST_ADDR = DEPTH - 1;
     localparam int HALF_CLK_PERIOD_NS  = CLK_PERIOD_NS / 2;
     localparam int PIPE_LAST           = VALID_LATENCY - 1;
     localparam int ROUND_TRUNC         = 32 - ROUND_OWID;
@@ -60,10 +61,7 @@ module radix2_top_tb
 
     radix2_top #(
         .FFT_N     (FFT_N),
-        .FRAC_BITS (FRAC_BITS),
-        .TW_W      (TW_W),
-        .ROUND_OWID(ROUND_OWID),
-        .OUT_W     (OUT_W)
+        .ROUND_OWID(ROUND_OWID)
     ) dut (
         .clk    (clk),
         .rst    (rst),
@@ -88,7 +86,7 @@ module radix2_top_tb
         longint unsigned integer_part;
         real             fractional_part;
     begin
-        integer_part    = $rtoi(value);
+        integer_part    = $unsigned(longint'($rtoi(value)));
         fractional_part = value - integer_part;
 
         if (fractional_part < (0.5 - EPS)) begin
@@ -118,10 +116,9 @@ module radix2_top_tb
         scaled_abs_x      = abs_x * (1 << FRAC_BITS);
         rounded_magnitude = bankers_round_positive(scaled_abs_x);
 
+        signed_result = rounded_magnitude;
         if (is_negative)
-            signed_result = -longint'(rounded_magnitude);
-        else
-            signed_result = longint'(rounded_magnitude);
+            signed_result = -signed_result;
 
         real_to_fixed_bankers = signed_result[TW_W-1:0];
     end
@@ -373,7 +370,7 @@ module radix2_top_tb
                     exp_im_pipe[0]    = clip_ref(round_im_ref);
                     inputs_accepted   = inputs_accepted + 1;
 
-                    if (stim_last[stim_idx] || (expected_addr_q == ADDR_W'(DEPTH - 1)))
+                    if (stim_last[stim_idx] || (expected_addr_q == LAST_ADDR))
                         expected_addr_q = '0;
                     else
                         expected_addr_q = expected_addr_q + 1'b1;
