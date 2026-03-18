@@ -4,7 +4,11 @@ module fft_twiddle_rom
 #(
     parameter int FFT_N     = 64,
     parameter int FRAC_BITS = 14,
-    parameter int TW_W      = 16
+    parameter int TW_W      = 16,
+
+    //   0 -> twiddle_bankers()
+    //   1 -> twiddle_twmeminit()
+    parameter int TW_GEN_MODE = 0
 )
 (
     input  logic                         clk,
@@ -12,7 +16,7 @@ module fft_twiddle_rom
     output logic [2*TW_W-1:0]            w
 );
 
-    localparam int DEPTH  = FFT_N / 2;
+    localparam int  DEPTH = FFT_N / 2;
     localparam real PI    = 3.14159265358979323846;
     localparam real EPS   = 1.0e-12;
 
@@ -73,6 +77,57 @@ module fft_twiddle_rom
     end
     endfunction
 
+    function automatic logic signed [TW_W-1:0] real_to_fixed_cast(input real x);
+        int signed fixed_value;
+    begin
+        fixed_value = int'(x * (2**FRAC_BITS));
+        real_to_fixed_cast = $signed(fixed_value[TW_W-1:0]);
+    end
+    endfunction
+
+    function automatic logic [2*TW_W-1:0] twiddle_bankers(input int idx);
+        real angle;
+        real data_real;
+        real data_imag;
+    begin
+        angle     = 2.0 * PI * real'(idx) / real'(FFT_N);
+        data_real =  $cos(angle);
+        data_imag = -$sin(angle);
+
+        twiddle_bankers = {
+            real_to_fixed_bankers(data_imag),
+            real_to_fixed_bankers(data_real)
+        };
+    end
+    endfunction
+
+    function automatic logic [2*TW_W-1:0] twiddle_twmeminit(input int idx);
+        real data_real;
+        real data_imag;
+    begin
+        data_real = $cos(2.0 * PI * $itor(idx) / $itor(FFT_N));
+        data_imag = $sin(2.0 * PI * $itor(idx) / $itor(FFT_N));
+
+        twiddle_twmeminit = {
+            real_to_fixed_cast(data_imag),
+            real_to_fixed_cast(data_real)
+        };
+    end
+    endfunction
+
+    // TW_GEN_MODE:
+    //   0 -> twiddle_bankers()
+    //   1 -> twiddle_twmeminit()
+    function automatic logic [2*TW_W-1:0] twiddle_value(input int idx);
+    begin
+        case (TW_GEN_MODE)
+            0:       twiddle_value = twiddle_bankers(idx);
+            1:       twiddle_value = twiddle_twmeminit(idx);
+            default: twiddle_value = '0;
+        endcase
+    end
+    endfunction
+
     //--------------------------------------------------------------------------
     // Проверки параметров
     //--------------------------------------------------------------------------
@@ -85,6 +140,9 @@ module fft_twiddle_rom
 
         if (TW_W < FRAC_BITS + 2)
             $fatal(1, "fft_twiddle_rom: TW_W must be >= FRAC_BITS + 2 for Q2.%0d", FRAC_BITS);
+
+        if ((TW_GEN_MODE < 0) || (TW_GEN_MODE > 1))
+            $fatal(1, "fft_twiddle_rom: TW_GEN_MODE must be 0 or 1");
     end
 
     //--------------------------------------------------------------------------
@@ -93,22 +151,9 @@ module fft_twiddle_rom
     // Re =  cos(2*pi*k/N)
     // Im = -sin(2*pi*k/N)
     //--------------------------------------------------------------------------
-    integer i;
-    real angle;
-    real re_v;
-    real im_v;
-
     initial begin
-        for (i = 0; i < DEPTH; i++) begin
-            angle = 2.0 * PI * real'(i) / real'(FFT_N);
-            re_v  =  $cos(angle);
-            im_v  = -$sin(angle);
-
-            rom[i] = {
-                real_to_fixed_bankers(im_v), // imag
-                real_to_fixed_bankers(re_v)  // real
-            };
-        end
+        for (int i = 0; i < DEPTH; i++)
+            rom[i] = twiddle_value(i);
     end
 
     //--------------------------------------------------------------------------

@@ -5,6 +5,7 @@ module radix2_top_tb
     parameter int FFT_N         = 64,
     parameter int FRAC_BITS     = 14,
     parameter int TW_W          = 16,
+    parameter int TW_GEN_MODE   = 0,
     parameter int ROUND_OWID    = 18,
     parameter int OUT_W         = 16,
     parameter int RESET_CYCLES  = 4,
@@ -20,6 +21,8 @@ module radix2_top_tb
     localparam int PIPE_LAST           = VALID_LATENCY - 1;
     localparam int ROUND_TRUNC         = 32 - ROUND_OWID;
     localparam int NUM_STIM            = 8;
+    localparam int TW_GEN_MODE_LEGACY  = 0;
+    localparam int TW_GEN_MODE_TWMEMINIT = 1;
     localparam real PI                 = 3.14159265358979323846;
     localparam real EPS                = 1.0e-12;
 
@@ -60,8 +63,9 @@ module radix2_top_tb
     reg [1023:0] dumpfile;
 
     radix2_top #(
-        .FFT_N     (FFT_N),
-        .ROUND_OWID(ROUND_OWID)
+        .FFT_N      (FFT_N),
+        .ROUND_OWID (ROUND_OWID),
+        .TW_GEN_MODE(TW_GEN_MODE)
     ) dut (
         .clk    (clk),
         .rst    (rst),
@@ -124,6 +128,14 @@ module radix2_top_tb
     end
     endfunction
 
+    function automatic logic signed [TW_W-1:0] real_to_fixed_cast(input real x);
+        int signed fixed_value;
+    begin
+        fixed_value = int'(x * (2**FRAC_BITS));
+        real_to_fixed_cast = $signed(fixed_value[TW_W-1:0]);
+    end
+    endfunction
+
     function automatic logic signed [31:0] twiddle_at_addr(
         input logic [ADDR_W-1:0] addr
     );
@@ -131,14 +143,22 @@ module radix2_top_tb
         real re_v;
         real im_v;
     begin
-        angle = 2.0 * PI * $itor(addr) / FFT_N;
+        angle = 2.0 * PI * $itor(addr) / $itor(FFT_N);
         re_v  = $cos(angle);
-        im_v  = -$sin(angle);
 
-        twiddle_at_addr = {
-            real_to_fixed_bankers(im_v),
-            real_to_fixed_bankers(re_v)
-        };
+        if (TW_GEN_MODE == TW_GEN_MODE_TWMEMINIT) begin
+            im_v = $sin(angle);
+            twiddle_at_addr = {
+                real_to_fixed_cast(im_v),
+                real_to_fixed_cast(re_v)
+            };
+        end else begin
+            im_v = -$sin(angle);
+            twiddle_at_addr = {
+                real_to_fixed_bankers(im_v),
+                real_to_fixed_bankers(re_v)
+            };
+        end
     end
     endfunction
 
@@ -252,6 +272,11 @@ module radix2_top_tb
 
     initial clk = 1'b0;
     always #(HALF_CLK_PERIOD_NS) clk = ~clk;
+
+    initial begin
+        if ((TW_GEN_MODE != TW_GEN_MODE_LEGACY) && (TW_GEN_MODE != TW_GEN_MODE_TWMEMINIT))
+            $fatal(1, "radix2_top_tb: TW_GEN_MODE must be 0 or 1");
+    end
 
     initial begin
         if (!$value$plusargs("dumpfile=%s", dumpfile))

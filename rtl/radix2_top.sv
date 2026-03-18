@@ -3,7 +3,8 @@
 module radix2_top
 #(
     parameter int FFT_N      = 64,
-    parameter int ROUND_OWID = 18
+    parameter int ROUND_OWID = 18,
+    parameter int TW_GEN_MODE = 0
 )
 (
     input  logic               clk,
@@ -60,9 +61,10 @@ module radix2_top
     );
 
     fft_twiddle_rom #(
-        .FFT_N    (FFT_N),
-        .FRAC_BITS(FRAC_BITS),
-        .TW_W     (TW_W)
+        .FFT_N      (FFT_N),
+        .FRAC_BITS  (FRAC_BITS),
+        .TW_W       (TW_W),
+        .TW_GEN_MODE(TW_GEN_MODE)
     ) u_rom (
         .clk (clk),
         .addr(twiddle_addr),
