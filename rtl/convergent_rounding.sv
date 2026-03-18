@@ -1,3 +1,4 @@
+`timescale 1ns/1ps
 //------------------------------------------------------------------------------
 // Convergent rounding (banker's rounding)
 //------------------------------------------------------------------------------
@@ -31,13 +32,13 @@ module convergent_rounding
     logic signed [IWID-1:0] w_convergent;
 
     assign w_convergent =
-        i_data
+        $signed($unsigned(i_data)
         + {
             {OWID{1'b0}},
             i_data[TRUNC],
             {(TRUNC-1){!i_data[TRUNC]}}
-          };
+          });
 
-    assign o_data = w_convergent[IWID-1:TRUNC];
+    assign o_data = $signed(w_convergent[IWID-1:TRUNC]);
 
 endmodule

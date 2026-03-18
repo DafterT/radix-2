@@ -16,7 +16,7 @@ module convergent_rounding_tb;
     int test_idx;
     int fails_count;
 
-    reg [1023:0] dumpfile;
+    string dumpfile;
 
     convergent_rounding #(
         .IWID(IWID),
