@@ -9,7 +9,7 @@ module fft_twiddle_rom
 (
     input  logic                         clk,
     input  logic [$clog2(FFT_N/2)-1:0]   addr,
-    output logic signed [2*TW_W-1:0]     w
+    output logic [2*TW_W-1:0]            w
 );
 
     localparam int DEPTH  = FFT_N / 2;
@@ -18,7 +18,7 @@ module fft_twiddle_rom
 
     // {imag, real}
     (* rom_style = "distributed" *)
-    logic signed [2*TW_W-1:0] rom [0:DEPTH-1];
+    logic [2*TW_W-1:0] rom [0:DEPTH-1];
 
     //------------------------------------------------------------------------------
     // Банковское округление для НЕОТРИЦАТЕЛЬНОГО числа:
@@ -104,10 +104,10 @@ module fft_twiddle_rom
             re_v  =  $cos(angle);
             im_v  = -$sin(angle);
 
-            rom[i] = $signed({
+            rom[i] = {
                 real_to_fixed_bankers(im_v), // imag
                 real_to_fixed_bankers(re_v)  // real
-            });
+            };
         end
     end
 

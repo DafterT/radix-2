@@ -12,7 +12,9 @@ module fft_twiddle_rom_tb #(
 
     logic clk;
     logic [ADDR_W-1:0] addr;
-    logic signed [2*TW_W-1:0] w;
+    logic [2*TW_W-1:0] w;
+    logic [TW_W-1:0] w_re_raw;
+    logic [TW_W-1:0] w_im_raw;
     logic signed [TW_W-1:0] w_re;
     logic signed [TW_W-1:0] w_im;
 
@@ -29,8 +31,10 @@ module fft_twiddle_rom_tb #(
         .w(w)
     );
 
-    assign w_re = $signed(w[TW_W-1:0]);
-    assign w_im = $signed(w[2*TW_W-1:TW_W]);
+    assign w_re_raw = w[TW_W-1:0];
+    assign w_im_raw = w[2*TW_W-1:TW_W];
+    assign w_re     = $signed(w_re_raw);
+    assign w_im     = $signed(w_im_raw);
 
     function automatic real fixed_to_real(input logic signed [TW_W-1:0] val);
         begin
@@ -72,9 +76,9 @@ module fft_twiddle_rom_tb #(
                 idx,
                 addr,
                 w,
-                $signed(w_im),
+                w_im,
                 fixed_to_real(w_im),
-                $signed(w_re),
+                w_re,
                 fixed_to_real(w_re)
             );
         end
