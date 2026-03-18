@@ -2,8 +2,8 @@
 
 module fft_twiddle_rom_tb #(
     parameter int FFT_N = 64,
-    parameter int FRAC_BITS = 16,
-    parameter int TW_W = 18,
+    parameter int FRAC_BITS = 14,
+    parameter int TW_W = 16,
     parameter int CLK_PERIOD_NS = 10
 );
 
