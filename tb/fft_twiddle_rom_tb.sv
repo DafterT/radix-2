@@ -6,7 +6,6 @@ module fft_twiddle_rom_tb #(
     parameter int TW_W = 16,
     parameter int CLK_PERIOD_NS = 10
 );
-
     localparam int DEPTH = FFT_N / 2;
     localparam int ADDR_W = $clog2(DEPTH);
     localparam int HALF_CLK_PERIOD_NS = CLK_PERIOD_NS / 2;
@@ -18,7 +17,7 @@ module fft_twiddle_rom_tb #(
     logic signed [TW_W-1:0] w_im;
 
     integer idx;
-    reg [1023:0] dumpfile;
+    string dumpfile;
 
     fft_twiddle_rom #(
         .FFT_N(FFT_N),
@@ -30,8 +29,8 @@ module fft_twiddle_rom_tb #(
         .w(w)
     );
 
-    assign w_re = w[TW_W-1:0];
-    assign w_im = w[2*TW_W-1:TW_W];
+    assign w_re = $signed(w[TW_W-1:0]);
+    assign w_im = $signed(w[2*TW_W-1:TW_W]);
 
     function automatic real fixed_to_real(input logic signed [TW_W-1:0] val);
         begin

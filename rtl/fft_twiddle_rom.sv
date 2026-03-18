@@ -1,3 +1,5 @@
+`timescale 1ns/1ps
+
 module fft_twiddle_rom
 #(
     parameter int FFT_N     = 64,
@@ -11,7 +13,6 @@ module fft_twiddle_rom
 );
 
     localparam int DEPTH  = FFT_N / 2;
-    localparam int ADDR_W = $clog2(DEPTH);
     localparam real PI    = 3.14159265358979323846;
     localparam real EPS   = 1.0e-12;
 
@@ -30,8 +31,8 @@ module fft_twiddle_rom
         real             fractional_part;
     begin
         // value >= 0
-        integer_part    = $rtoi(value);
-        fractional_part = value - integer_part;
+        integer_part    = $unsigned(longint'($rtoi(value)));
+        fractional_part = value - real'(integer_part);
 
         if (fractional_part < (0.5 - EPS)) begin
             bankers_round_positive = integer_part;
@@ -64,12 +65,11 @@ module fft_twiddle_rom
         scaled_abs_x     = abs_x * (1 << FRAC_BITS);
         rounded_magnitude = bankers_round_positive(scaled_abs_x);
 
+        signed_result = longint'(rounded_magnitude);
         if (is_negative)
-            signed_result = -longint'(rounded_magnitude);
-        else
-            signed_result =  longint'(rounded_magnitude);
+            signed_result = -signed_result;
 
-        real_to_fixed_bankers = signed_result[TW_W-1:0];
+        real_to_fixed_bankers = $signed(signed_result[TW_W-1:0]);
     end
     endfunction
 
@@ -100,14 +100,14 @@ module fft_twiddle_rom
 
     initial begin
         for (i = 0; i < DEPTH; i++) begin
-            angle = 2.0 * PI * i / FFT_N;
+            angle = 2.0 * PI * real'(i) / real'(FFT_N);
             re_v  =  $cos(angle);
             im_v  = -$sin(angle);
 
-            rom[i] = {
+            rom[i] = $signed({
                 real_to_fixed_bankers(im_v), // imag
                 real_to_fixed_bankers(re_v)  // real
-            };
+            });
         end
     end
 
