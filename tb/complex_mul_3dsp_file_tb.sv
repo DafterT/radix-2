@@ -94,6 +94,105 @@ module complex_mul_3dsp_file_tb #(
         end
     endfunction
 
+    function automatic logic signed [15:0] packed_re16(input logic [31:0] v);
+        begin
+            packed_re16 = $signed(v[15:0]);
+        end
+    endfunction
+
+    function automatic logic signed [15:0] packed_im16(input logic [31:0] v);
+        begin
+            packed_im16 = $signed(v[31:16]);
+        end
+    endfunction
+
+    function automatic real q2_14_to_real(input logic signed [15:0] v);
+        begin
+            q2_14_to_real = $itor(v) / (1 << 14);
+        end
+    endfunction
+
+    function automatic real q18_14_to_real(input logic signed [31:0] v);
+        begin
+            q18_14_to_real = $itor(v) / (1 << 14);
+        end
+    endfunction
+
+    task automatic print_pass_result(
+        input int vec_id,
+        input logic [31:0] x_in,
+        input logic [31:0] y_in,
+        input logic signed [31:0] out_re_in,
+        input logic signed [31:0] out_im_in
+    );
+        begin
+            $display("PASS vec=%0d", vec_id);
+            $display(
+                "  a   = %0d + j%0d    (x=0x%08h)",
+                packed_re16(x_in),
+                packed_im16(x_in),
+                x_in
+            );
+            $display(
+                "  b   = %0d + j%0d    (y=0x%08h, Q2.14 => %0.6f + j%0.6f)",
+                packed_re16(y_in),
+                packed_im16(y_in),
+                y_in,
+                q2_14_to_real(packed_re16(y_in)),
+                q2_14_to_real(packed_im16(y_in))
+            );
+            $display(
+                "  out = %0d + j%0d    (Q18.14 => %0.6f + j%0.6f)",
+                out_re_in,
+                out_im_in,
+                q18_14_to_real(out_re_in),
+                q18_14_to_real(out_im_in)
+            );
+        end
+    endtask
+
+    task automatic print_fail_result(
+        input int vec_id,
+        input logic [31:0] x_in,
+        input logic [31:0] y_in,
+        input logic signed [31:0] got_re_in,
+        input logic signed [31:0] got_im_in,
+        input logic signed [31:0] exp_re_in,
+        input logic signed [31:0] exp_im_in
+    );
+        begin
+            $display("FAIL vec=%0d", vec_id);
+            $display(
+                "  a    = %0d + j%0d    (x=0x%08h)",
+                packed_re16(x_in),
+                packed_im16(x_in),
+                x_in
+            );
+            $display(
+                "  b    = %0d + j%0d    (y=0x%08h, Q2.14 => %0.6f + j%0.6f)",
+                packed_re16(y_in),
+                packed_im16(y_in),
+                y_in,
+                q2_14_to_real(packed_re16(y_in)),
+                q2_14_to_real(packed_im16(y_in))
+            );
+            $display(
+                "  got  = %0d + j%0d    (Q18.14 => %0.6f + j%0.6f)",
+                got_re_in,
+                got_im_in,
+                q18_14_to_real(got_re_in),
+                q18_14_to_real(got_im_in)
+            );
+            $display(
+                "  exp  = %0d + j%0d    (Q18.14 => %0.6f + j%0.6f)",
+                exp_re_in,
+                exp_im_in,
+                q18_14_to_real(exp_re_in),
+                q18_14_to_real(exp_im_in)
+            );
+        end
+    endtask
+
     // Загружает вход DUT на текущий такт.
     task automatic drive_vector(
         input logic [31:0] x_in,
@@ -187,8 +286,7 @@ module complex_mul_3dsp_file_tb #(
             if (valid_pipe[PIPE_LAST]) begin
                 if ((out_re !== exp_re_pipe[PIPE_LAST]) || (out_im !== exp_im_pipe[PIPE_LAST])) begin
                     fails_count = fails_count + 1;
-                    $display(
-                        "FAIL vec=%0d: x=0x%08h y=0x%08h -> got(re=%0d im=%0d) exp(re=%0d im=%0d)",
+                    print_fail_result(
                         id_pipe[PIPE_LAST],
                         x_pipe[PIPE_LAST],
                         y_pipe[PIPE_LAST],
@@ -198,8 +296,7 @@ module complex_mul_3dsp_file_tb #(
                         exp_im_pipe[PIPE_LAST]
                     );
                 end else begin
-                    $display(
-                        "PASS vec=%0d: x=0x%08h y=0x%08h -> re=%0d im=%0d",
+                    print_pass_result(
                         id_pipe[PIPE_LAST],
                         x_pipe[PIPE_LAST],
                         y_pipe[PIPE_LAST],
@@ -240,7 +337,7 @@ module complex_mul_3dsp_file_tb #(
                         scan_status = $fgets(skipped_line, file_desc);
                         if (scan_status == 0)
                             $fatal(1, "Failed to skip malformed line in: %0s", input_file);
-                        $display("[%0t] Skipping malformed input line: %0s", $time, skipped_line);
+                        $write("[%0t] Skipping malformed input line: %0s", $time, skipped_line);
                     end
                 end
 
