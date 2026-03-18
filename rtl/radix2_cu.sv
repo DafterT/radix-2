@@ -14,6 +14,7 @@ module radix2_cu
 
     localparam int DEPTH  = FFT_N / 2;
     localparam int ADDR_W = $clog2(DEPTH);
+    localparam logic [ADDR_W-1:0] LAST_ADDR = DEPTH - 1;
 
     logic [ADDR_W-1:0] addr_q;
 
@@ -29,7 +30,7 @@ module radix2_cu
         if (rst) begin
             addr_q <= '0;
         end else if (valid_i) begin
-            if (last_i || (addr_q == ADDR_W'(DEPTH - 1)))
+            if (last_i || (addr_q == LAST_ADDR))
                 addr_q <= '0;
             else
                 addr_q <= addr_q + 1'b1;
