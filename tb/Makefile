@@ -76,15 +76,36 @@ SIMV_TW := $(BUILD_DIR)/$(TOP_TW).vvp
 VCD_TW ?= $(BUILD_DIR)/$(TOP_TW).vcd
 
 FFT_N ?= 64
-FRAC_BITS ?= 16
-TW_W ?= 18
+FRAC_BITS ?= 14
+TW_W ?= 16
 
 IVFLAGS_TW := $(IVFLAGS_COMMON)
 IVFLAGS_TW += -P $(TOP_TW).FFT_N=$(FFT_N)
 IVFLAGS_TW += -P $(TOP_TW).FRAC_BITS=$(FRAC_BITS)
 IVFLAGS_TW += -P $(TOP_TW).TW_W=$(TW_W)
 
-.PHONY: all dsp mul round clip twiddle run-all wave-all build-dsp run-dsp wave-dsp build-mul run-mul wave-mul build-round run-round wave-round build-clip run-clip wave-clip build-tw run-tw wave-tw run wave clean
+# -------------------------------
+# radix2_top_tb settings
+# -------------------------------
+TOP_RADIX2 := radix2_top_tb
+TB_RADIX2 := $(THIS_DIR)/$(TOP_RADIX2).sv
+RTL_RADIX2 := $(ROOT_DIR)/rtl/DSP48E2_like.sv \
+              $(ROOT_DIR)/rtl/complex_mul_3dsp.sv \
+              $(ROOT_DIR)/rtl/convergent_rounding.sv \
+              $(ROOT_DIR)/rtl/fft_twiddle_rom.sv \
+              $(ROOT_DIR)/rtl/radix2_cu.sv \
+              $(ROOT_DIR)/rtl/radix2_top.sv \
+              $(ROOT_DIR)/rtl/shift_register_with_valid.sv \
+              $(ROOT_DIR)/rtl/symmetric_clip.sv
+SIMV_RADIX2 := $(BUILD_DIR)/$(TOP_RADIX2).vvp
+VCD_RADIX2 ?= $(BUILD_DIR)/$(TOP_RADIX2).vcd
+
+IVFLAGS_RADIX2 := $(IVFLAGS_COMMON)
+IVFLAGS_RADIX2 += -P $(TOP_RADIX2).FFT_N=$(FFT_N)
+IVFLAGS_RADIX2 += -P $(TOP_RADIX2).FRAC_BITS=14
+IVFLAGS_RADIX2 += -P $(TOP_RADIX2).TW_W=16
+
+.PHONY: all dsp mul round clip twiddle radix2 run-all wave-all build-dsp run-dsp wave-dsp build-mul run-mul wave-mul build-round run-round wave-round build-clip run-clip wave-clip build-tw run-tw wave-tw build-radix2 run-radix2 wave-radix2 run wave clean
 
 all: run-all
 
@@ -97,6 +118,8 @@ round: run-round
 clip: run-clip
 
 twiddle: run-tw
+
+radix2: run-radix2
 
 build-dsp:
 	mkdir -p $(BUILD_DIR)
@@ -153,9 +176,20 @@ wave-tw: build-tw
 	$(VVP) $(SIMV_TW) +dump +dumpfile=$(VCD_TW)
 	@echo "VCD generated: $(VCD_TW)"
 
-run-all: run-dsp run-mul run-round run-clip run-tw
+build-radix2:
+	mkdir -p $(BUILD_DIR)
+	$(IVERILOG) $(IVFLAGS_RADIX2) -o $(SIMV_RADIX2) $(TB_RADIX2) $(RTL_RADIX2)
 
-wave-all: wave-dsp wave-mul wave-round wave-clip wave-tw
+run-radix2: build-radix2
+	$(VVP) $(SIMV_RADIX2)
+
+wave-radix2: build-radix2
+	$(VVP) $(SIMV_RADIX2) +dump +dumpfile=$(VCD_RADIX2)
+	@echo "VCD generated: $(VCD_RADIX2)"
+
+run-all: run-dsp run-mul run-round run-clip run-tw run-radix2
+
+wave-all: wave-dsp wave-mul wave-round wave-clip wave-tw wave-radix2
 
 # Backward compatibility with old single-test flow.
 run: run-dsp
