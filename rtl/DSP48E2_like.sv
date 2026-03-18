@@ -1,3 +1,5 @@
+`timescale 1ns/1ps
+
 module DSP48E2_like #(
     // preadder: 
     //      0 => D + A 
@@ -60,7 +62,7 @@ module DSP48E2_like #(
 
     // preadder comb
     logic signed [26:0] a27;
-    assign  a27 = a_q[26:0];
+    assign  a27 = $signed(a_q[26:0]);
 
     logic signed [26:0] pre_comb;
 
@@ -84,17 +86,23 @@ module DSP48E2_like #(
     // ------------------------------------------------------------
     localparam int M_W = 27 + 18; // 45
     logic signed [M_W-1:0] m_comb, m_q;
+    logic signed [M_W-1:0] pre_mul_ext;
+    logic signed [M_W-1:0] b_mul_ext;
+    logic signed [2*M_W-1:0] m_full;
 
-    assign m_comb = pre_q * b2_q;
+    assign pre_mul_ext = $signed({{(M_W-27){pre_q[26]}}, pre_q});
+    assign b_mul_ext   = $signed({{(M_W-18){b2_q[17]}}, b2_q});
+    assign m_full      = pre_mul_ext * b_mul_ext;
+    assign m_comb      = $signed(m_full[M_W-1:0]);
 
     always_ff @(posedge clk) begin
         if (rst) m_q <= '0;
         else     m_q <= m_comb;
     end
-
+    
     // Расширение знака
     logic signed [47:0] m_p;
-    assign m_p = {{(48-M_W){m_q[M_W-1]}}, m_q};
+    assign m_p = $signed({{(48-M_W){m_q[M_W-1]}}, m_q});
 
     // ------------------------------------------------------------
     // Post-adder and final output register

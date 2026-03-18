@@ -40,8 +40,8 @@ module DSP48E2_like_file_tb #(
     integer vec_id;
     reg [1023:0] skipped_line;
 
-    reg [1023:0] input_file;
-    reg [1023:0] dumpfile;
+    string input_file;
+    string dumpfile;
 
     task automatic drive_vector(
         input logic signed [29:0] a_in,
@@ -158,6 +158,9 @@ module DSP48E2_like_file_tb #(
             end else begin
                 if (!$feof(file_desc)) begin
                     scan_status = $fgets(skipped_line, file_desc);
+                    if (scan_status == 0)
+                        $fatal(1, "Failed to skip malformed line in: %0s", input_file);
+                    $display("[%0t] Skipping malformed input line: %0s", $time, skipped_line);
                 end
             end
         end
