@@ -18,8 +18,8 @@ module complex_mul_3dsp_file_tb #(
     logic rst;
 
     // Интерфейс DUT.
-    logic signed [31:0] x;
-    logic signed [31:0] y;
+    logic [31:0] x;
+    logic [31:0] y;
     logic signed [31:0] out_re;
     logic signed [31:0] out_im;
 
@@ -42,13 +42,13 @@ module complex_mul_3dsp_file_tb #(
     // exp_re_pipe/exp_im_pipe хранят эталон для сравнения с выходом DUT.
     logic                   valid_pipe [0:PIPE_LAST];
     integer                 id_pipe    [0:PIPE_LAST];
-    logic signed [31:0]     x_pipe     [0:PIPE_LAST];
-    logic signed [31:0]     y_pipe     [0:PIPE_LAST];
+    logic [31:0]            x_pipe     [0:PIPE_LAST];
+    logic [31:0]            y_pipe     [0:PIPE_LAST];
     logic signed [31:0]     exp_re_pipe[0:PIPE_LAST];
     logic signed [31:0]     exp_im_pipe[0:PIPE_LAST];
 
-    reg [1023:0] input_file;
-    reg [1023:0] dumpfile;
+    string input_file;
+    string dumpfile;
 
     // Эталонная действительная часть:
     // Re = ar*br - ai*bi
@@ -96,8 +96,8 @@ module complex_mul_3dsp_file_tb #(
 
     // Загружает вход DUT на текущий такт.
     task automatic drive_vector(
-        input logic signed [31:0] x_in,
-        input logic signed [31:0] y_in
+        input logic [31:0] x_in,
+        input logic [31:0] y_in
     );
         begin
             x = x_in;
@@ -238,6 +238,9 @@ module complex_mul_3dsp_file_tb #(
                         got_vector = 1'b1;
                     end else if (!$feof(file_desc)) begin
                         scan_status = $fgets(skipped_line, file_desc);
+                        if (scan_status == 0)
+                            $fatal(1, "Failed to skip malformed line in: %0s", input_file);
+                        $display("[%0t] Skipping malformed input line: %0s", $time, skipped_line);
                     end
                 end
 
@@ -247,12 +250,12 @@ module complex_mul_3dsp_file_tb #(
                     y_vec = $signed(y_raw);
                     vectors_count = vectors_count + 1;
 
-                    drive_vector(x_vec, y_vec);
+                    drive_vector(x_raw, y_raw);
 
                     valid_pipe[0]  = 1'b1;
                     id_pipe[0]     = vectors_count;
-                    x_pipe[0]      = x_vec;
-                    y_pipe[0]      = y_vec;
+                    x_pipe[0]      = x_raw;
+                    y_pipe[0]      = y_raw;
                     exp_re_pipe[0] = calc_expected_re(x_vec, y_vec);
                     exp_im_pipe[0] = calc_expected_im(x_vec, y_vec);
                 end else begin
