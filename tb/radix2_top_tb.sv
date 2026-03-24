@@ -3,9 +3,7 @@
 module radix2_top_tb
 #(
     parameter int FFT_N         = 64,
-    parameter int FRAC_BITS     = 14,
     parameter int TW_W          = 16,
-    parameter int TW_GEN_MODE   = 0,
     parameter int ROUND_OWID    = 18,
     parameter int OUT_W         = 16,
     parameter int RESET_CYCLES  = 4,
@@ -16,15 +14,13 @@ module radix2_top_tb
 
     localparam int DEPTH               = FFT_N / 2;
     localparam int ADDR_W              = $clog2(DEPTH);
+    localparam int FRAC_BITS           = TW_W - 2;
     localparam logic [ADDR_W-1:0] LAST_ADDR = DEPTH - 1;
     localparam int HALF_CLK_PERIOD_NS  = CLK_PERIOD_NS / 2;
     localparam int PIPE_LAST           = VALID_LATENCY - 1;
     localparam int ROUND_TRUNC         = 32 - ROUND_OWID;
     localparam int NUM_STIM            = 8;
-    localparam int TW_GEN_MODE_LEGACY  = 0;
-    localparam int TW_GEN_MODE_TWMEMINIT = 1;
     localparam real PI                 = 3.14159265358979323846;
-    localparam real EPS                = 1.0e-12;
 
     logic clk;
     logic rst;
@@ -64,8 +60,7 @@ module radix2_top_tb
 
     radix2_top #(
         .FFT_N      (FFT_N),
-        .ROUND_OWID (ROUND_OWID),
-        .TW_GEN_MODE(TW_GEN_MODE)
+        .ROUND_OWID (ROUND_OWID)
     ) dut (
         .clk    (clk),
         .rst    (rst),
@@ -86,48 +81,6 @@ module radix2_top_tb
         end
     endfunction
 
-    function automatic longint unsigned bankers_round_positive(input real value);
-        longint unsigned integer_part;
-        real             fractional_part;
-    begin
-        integer_part    = $unsigned(longint'($rtoi(value)));
-        fractional_part = value - real'(integer_part);
-
-        if (fractional_part < (0.5 - EPS)) begin
-            bankers_round_positive = integer_part;
-        end
-        else if (fractional_part > (0.5 + EPS)) begin
-            bankers_round_positive = integer_part + 1;
-        end
-        else begin
-            if (integer_part[0] == 1'b0)
-                bankers_round_positive = integer_part;
-            else
-                bankers_round_positive = integer_part + 1;
-        end
-    end
-    endfunction
-
-    function automatic logic signed [TW_W-1:0] real_to_fixed_bankers(input real x);
-        bit              is_negative;
-        real             abs_x;
-        real             scaled_abs_x;
-        longint unsigned rounded_magnitude;
-        longint signed   signed_result;
-    begin
-        is_negative       = (x < 0.0);
-        abs_x             = is_negative ? -x : x;
-        scaled_abs_x      = abs_x * (1 << FRAC_BITS);
-        rounded_magnitude = bankers_round_positive(scaled_abs_x);
-
-        signed_result = longint'(rounded_magnitude);
-        if (is_negative)
-            signed_result = -signed_result;
-
-        real_to_fixed_bankers = $signed(signed_result[TW_W-1:0]);
-    end
-    endfunction
-
     function automatic logic signed [TW_W-1:0] real_to_fixed_cast(input real x);
         int signed fixed_value;
     begin
@@ -145,19 +98,12 @@ module radix2_top_tb
     begin
         angle = 2.0 * PI * $itor(addr) / $itor(FFT_N);
         re_v  = $cos(angle);
-        im_v = -$sin(angle);
+        im_v  = -$sin(angle);
 
-        if (TW_GEN_MODE == TW_GEN_MODE_TWMEMINIT) begin
-            twiddle_at_addr = pack_complex(
-                real_to_fixed_cast(im_v),
-                real_to_fixed_cast(re_v)
-            );
-        end else begin
-            twiddle_at_addr = pack_complex(
-                real_to_fixed_bankers(im_v),
-                real_to_fixed_bankers(re_v)
-            );
-        end
+        twiddle_at_addr = pack_complex(
+            real_to_fixed_cast(im_v),
+            real_to_fixed_cast(re_v)
+        );
     end
     endfunction
 
@@ -272,11 +218,6 @@ module radix2_top_tb
 
     initial clk = 1'b0;
     always #(HALF_CLK_PERIOD_NS) clk = ~clk;
-
-    initial begin
-        if ((TW_GEN_MODE != TW_GEN_MODE_LEGACY) && (TW_GEN_MODE != TW_GEN_MODE_TWMEMINIT))
-            $fatal(1, "radix2_top_tb: TW_GEN_MODE must be 0 or 1");
-    end
 
     initial begin
         if (!$value$plusargs("dumpfile=%s", dumpfile))

@@ -3,8 +3,7 @@
 module radix2_top
 #(
     parameter int FFT_N      = 64,
-    parameter int ROUND_OWID = 18,
-    parameter int TW_GEN_MODE = 0
+    parameter int ROUND_OWID = 18
 )
 (
     input  logic               clk,
@@ -23,7 +22,6 @@ module radix2_top
     localparam int VALID_PIPE_STAGES = 4;
     localparam int ADDR_W            = $clog2(FFT_N / 2);
     localparam int OUT_W             = 16;
-    localparam int FRAC_BITS         = 14;
     localparam int TW_W              = 16;
     localparam int TWIDDLE_PACK_W    = 2 * TW_W;
 
@@ -61,10 +59,8 @@ module radix2_top
     );
 
     fft_twiddle_rom #(
-        .FFT_N      (FFT_N),
-        .FRAC_BITS  (FRAC_BITS),
-        .TW_W       (TW_W),
-        .TW_GEN_MODE(TW_GEN_MODE)
+        .FFT_N(FFT_N),
+        .TW_W (TW_W)
     ) u_rom (
         .clk (clk),
         .addr(twiddle_addr),
