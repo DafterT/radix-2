@@ -1,6 +1,6 @@
 # Build output
-build/
-**/build/
+build*/
+**/build*/
 
 # C/C++ artifacts
 *.o
