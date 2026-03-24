@@ -28,8 +28,9 @@ module radix2_top_tb
     logic signed [31:0] iq;
     logic               valid_i;
     logic               last_i;
-    logic signed [15:0] im;
-    logic signed [15:0] re;
+    logic        [31:0] iq_o;
+    logic signed [15:0] iq_o_im;
+    logic signed [15:0] iq_o_re;
     logic               valid_o;
 
     logic signed [31:0] stim_iq   [0:NUM_STIM-1];
@@ -58,17 +59,18 @@ module radix2_top_tb
 
     string dumpfile;
 
+    assign iq_o_im = $signed(iq_o[31:16]);
+    assign iq_o_re = $signed(iq_o[15:0]);
+
     radix2_top #(
-        .FFT_N      (FFT_N),
-        .ROUND_OWID (ROUND_OWID)
+        .FFT_N      (FFT_N)
     ) dut (
         .clk    (clk),
         .rst    (rst),
         .iq     ($unsigned(iq)),
         .valid_i(valid_i),
         .last_i (last_i),
-        .im     (im),
-        .re     (re),
+        .iq_o   (iq_o),
         .valid_o(valid_o)
     );
 
@@ -279,13 +281,13 @@ module radix2_top_tb
                     );
                 end else begin
                     outputs_seen = outputs_seen + 1;
-                    if ((re !== exp_re_pipe[PIPE_LAST]) || (im !== exp_im_pipe[PIPE_LAST])) begin
+                    if ((iq_o_re !== exp_re_pipe[PIPE_LAST]) || (iq_o_im !== exp_im_pipe[PIPE_LAST])) begin
                         fails_count = fails_count + 1;
                         $display(
                             "FAIL cycle=%0d: got(re=%0d im=%0d) exp(re=%0d im=%0d)",
                             cycle_count,
-                            $signed(re),
-                            $signed(im),
+                            $signed(iq_o_re),
+                            $signed(iq_o_im),
                             $signed(exp_re_pipe[PIPE_LAST]),
                             $signed(exp_im_pipe[PIPE_LAST])
                         );
@@ -293,8 +295,8 @@ module radix2_top_tb
                         $display(
                             "PASS cycle=%0d: re=%0d im=%0d",
                             cycle_count,
-                            $signed(re),
-                            $signed(im)
+                            $signed(iq_o_re),
+                            $signed(iq_o_im)
                         );
                     end
                 end
@@ -304,8 +306,8 @@ module radix2_top_tb
                 $display(
                     "FAIL cycle=%0d: unexpected valid_o with re=%0d im=%0d",
                     cycle_count,
-                    $signed(re),
-                    $signed(im)
+                    $signed(iq_o_re),
+                    $signed(iq_o_im)
                 );
             end
 

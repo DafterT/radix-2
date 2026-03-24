@@ -2,8 +2,7 @@
 
 module radix2_top
 #(
-    parameter int FFT_N      = 64,
-    parameter int ROUND_OWID = 18
+    parameter int FFT_N      = 64
 )
 (
     input  logic               clk,
@@ -11,8 +10,7 @@ module radix2_top
     input  logic        [31:0] iq,
     input  logic               valid_i,
     input  logic               last_i,
-    output logic signed [15:0] im,
-    output logic signed [15:0] re,
+    output logic        [31:0] iq_o,
     output logic               valid_o
 );
 
@@ -23,6 +21,7 @@ module radix2_top
     localparam int ADDR_W            = ((FFT_N / 2) > 1) ? $clog2(FFT_N / 2) : 1;
     localparam int OUT_W             = 16;
     localparam int TW_W              = 16;
+    localparam int ROUND_OWID        = 18;
     localparam int TWIDDLE_PACK_W    = 2 * TW_W;
 
     logic                                iq_aligned_vld;
@@ -34,6 +33,8 @@ module radix2_top
     logic signed [MUL_OUT_W-1:0]         mul_im;
     logic signed [ROUND_OWID-1:0]        round_re;
     logic signed [ROUND_OWID-1:0]        round_im;
+    logic signed [OUT_W-1:0]             re_clip;
+    logic signed [OUT_W-1:0]             im_clip;
     logic        [VALID_PIPE_STAGES-1:0] valid_pipe;
 
     shift_register_with_valid #(
@@ -99,7 +100,7 @@ module radix2_top
         .OWID(OUT_W)
     ) u_clip_re (
         .i_data(round_re),
-        .o_data(re)
+        .o_data(re_clip)
     );
 
     symmetric_clip #(
@@ -107,7 +108,7 @@ module radix2_top
         .OWID(OUT_W)
     ) u_clip_im (
         .i_data(round_im),
-        .o_data(im)
+        .o_data(im_clip)
     );
 
     always_ff @(posedge clk) begin
@@ -121,5 +122,6 @@ module radix2_top
     end
 
     assign valid_o = valid_pipe[VALID_PIPE_STAGES - 1];
+    assign iq_o    = {im_clip, re_clip};
 
 endmodule
