@@ -102,7 +102,21 @@ IVFLAGS_RADIX2 := $(IVFLAGS_COMMON)
 IVFLAGS_RADIX2 += -P $(TOP_RADIX2).FFT_N=$(FFT_N)
 IVFLAGS_RADIX2 += -P $(TOP_RADIX2).TW_W=$(TW_W)
 
-.PHONY: all dsp mul round clip twiddle radix2 run-all wave-all build-dsp run-dsp wave-dsp build-mul run-mul wave-mul build-round run-round wave-round build-clip run-clip wave-clip build-tw run-tw wave-tw build-radix2 run-radix2 wave-radix2 run wave clean
+# -------------------------------
+# radix_2_butterfly_tb settings
+# -------------------------------
+TOP_BUTTERFLY := radix_2_butterfly_tb
+TB_BUTTERFLY := $(THIS_DIR)/$(TOP_BUTTERFLY).sv
+RTL_BUTTERFLY := $(ROOT_DIR)/rtl/DSP48E2_like.sv \
+                 $(ROOT_DIR)/rtl/complex_mul_3dsp.sv \
+                 $(ROOT_DIR)/rtl/shift_register_with_valid.sv \
+                 $(ROOT_DIR)/rtl/radix_2_butterfly.sv
+SIMV_BUTTERFLY := $(BUILD_DIR)/$(TOP_BUTTERFLY).vvp
+VCD_BUTTERFLY ?= $(BUILD_DIR)/$(TOP_BUTTERFLY).vcd
+
+IVFLAGS_BUTTERFLY := $(IVFLAGS_COMMON)
+
+.PHONY: all dsp mul round clip twiddle radix2 butterfly run-all wave-all build-dsp run-dsp wave-dsp build-mul run-mul wave-mul build-round run-round wave-round build-clip run-clip wave-clip build-tw run-tw wave-tw build-radix2 run-radix2 wave-radix2 build-butterfly run-butterfly wave-butterfly run wave clean
 
 all: run-all
 
@@ -117,6 +131,8 @@ clip: run-clip
 twiddle: run-tw
 
 radix2: run-radix2
+
+butterfly: run-butterfly
 
 build-dsp:
 	mkdir -p $(BUILD_DIR)
@@ -184,9 +200,20 @@ wave-radix2: build-radix2
 	$(VVP) $(SIMV_RADIX2) +dump +dumpfile=$(VCD_RADIX2)
 	@echo "VCD generated: $(VCD_RADIX2)"
 
-run-all: run-dsp run-mul run-round run-clip run-tw run-radix2
+build-butterfly:
+	mkdir -p $(BUILD_DIR)
+	$(IVERILOG) $(IVFLAGS_BUTTERFLY) -o $(SIMV_BUTTERFLY) $(TB_BUTTERFLY) $(RTL_BUTTERFLY)
 
-wave-all: wave-dsp wave-mul wave-round wave-clip wave-tw wave-radix2
+run-butterfly: build-butterfly
+	$(VVP) $(SIMV_BUTTERFLY)
+
+wave-butterfly: build-butterfly
+	$(VVP) $(SIMV_BUTTERFLY) +dump +dumpfile=$(VCD_BUTTERFLY)
+	@echo "VCD generated: $(VCD_BUTTERFLY)"
+
+run-all: run-dsp run-mul run-round run-clip run-tw run-radix2 run-butterfly
+
+wave-all: wave-dsp wave-mul wave-round wave-clip wave-tw wave-radix2 wave-butterfly
 
 # Backward compatibility with old single-test flow.
 run: run-dsp
