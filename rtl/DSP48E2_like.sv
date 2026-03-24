@@ -16,15 +16,15 @@ module DSP48E2_like #(
     //      1 => -C
     parameter bit POSTADD_SUB = 1'b0   
 ) (
-    input  logic                  clk,
-    input  logic                  rst,
+    input  logic               clk,
+    input  logic               rst,
 
-    input  logic signed [29:0]     A,   // 30-bit A port
-    input  logic signed [26:0]     D,   // 27-bit D port
-    input  logic signed [17:0]     B,   // 18-bit B port
-    input  logic signed [47:0]     C,   // 48-bit C port
+    input  logic signed [29:0] A,   // 30-bit A port
+    input  logic signed [26:0] D,   // 27-bit D port
+    input  logic signed [17:0] B,   // 18-bit B port
+    input  logic signed [47:0] C,   // 48-bit C port
 
-    output logic signed [47:0]     Y
+    output logic signed [47:0] Y
 );
 
     // ------------------------------------------------------------

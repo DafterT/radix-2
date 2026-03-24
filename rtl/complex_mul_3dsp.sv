@@ -1,12 +1,12 @@
 `timescale 1ns/1ps
 
 module complex_mul_3dsp (
-    input  logic                 clk,
-    input  logic                 rst,
-    input  logic        [31:0]   x,       // [31:16] = a_im (Q16.0), [15:0] = a_re (Q16.0)
-    input  logic        [31:0]   y,       // [31:16] = b_im (Q2.14), [15:0] = b_re (Q2.14)
-    output logic signed [31:0]   out_re,  // Q18.14
-    output logic signed [31:0]   out_im   // Q18.14
+    input  logic               clk,
+    input  logic               rst,
+    input  logic        [31:0] x,       // [31:16] = a_im (Q16.0), [15:0] = a_re (Q16.0)
+    input  logic        [31:0] y,       // [31:16] = b_im (Q2.14), [15:0] = b_re (Q2.14)
+    output logic signed [31:0] out_re,  // Q18.14
+    output logic signed [31:0] out_im   // Q18.14
 );
 
     logic signed [15:0] x_re, x_im;

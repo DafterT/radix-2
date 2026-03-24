@@ -6,14 +6,14 @@ module shift_register_with_valid
     parameter int depth = 8
 )
 (
-    input  logic              clk,
-    input  logic              rst,
+    input  logic               clk,
+    input  logic               rst,
 
-    input  logic              in_vld,
-    input  logic              [width - 1:0] in_data,
+    input  logic               in_vld,
+    input  logic [width - 1:0] in_data,
 
-    output logic              out_vld,
-    output logic              [width - 1:0] out_data
+    output logic               out_vld,
+    output logic [width - 1:0] out_data
 );
 
     logic [width - 1:0] data_q [0:depth - 1];

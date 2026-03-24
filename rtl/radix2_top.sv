@@ -5,13 +5,13 @@ module radix2_top
     parameter int FFT_N      = 64
 )
 (
-    input  logic               clk,
-    input  logic               rst,
-    input  logic        [31:0] iq,
-    input  logic               valid_i,
-    input  logic               last_i,
-    output logic        [31:0] iq_o,
-    output logic               valid_o
+    input  logic        clk,
+    input  logic        rst,
+    input  logic [31:0] iq,
+    input  logic        valid_i,
+    input  logic        last_i,
+    output logic [31:0] iq_o,
+    output logic        valid_o
 );
 
     localparam int PACKED_COMPLEX_W  = 32;
