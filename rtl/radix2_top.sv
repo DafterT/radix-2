@@ -20,7 +20,7 @@ module radix2_top
     localparam int MUL_OUT_W         = PACKED_COMPLEX_W;
     localparam int INPUT_ALIGN_DEPTH = 1;
     localparam int VALID_PIPE_STAGES = 4;
-    localparam int ADDR_W            = $clog2(FFT_N / 2);
+    localparam int ADDR_W            = ((FFT_N / 2) > 1) ? $clog2(FFT_N / 2) : 1;
     localparam int OUT_W             = 16;
     localparam int TW_W              = 16;
     localparam int TWIDDLE_PACK_W    = 2 * TW_W;

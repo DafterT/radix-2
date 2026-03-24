@@ -6,19 +6,19 @@ module fft_twiddle_rom_tb #(
     parameter int CLK_PERIOD_NS = 10
 );
     localparam int DEPTH = FFT_N / 2;
-    localparam int ADDR_W = $clog2(DEPTH);
+    localparam int ADDR_W = (DEPTH > 1) ? $clog2(DEPTH) : 1;
     localparam int FRAC_BITS = TW_W - 2;
     localparam int HALF_CLK_PERIOD_NS = CLK_PERIOD_NS / 2;
 
     logic clk;
-    logic [ADDR_W-1:0] addr;
+    int unsigned addr_idx;
     logic [2*TW_W-1:0] w;
     logic [TW_W-1:0] w_re_raw;
     logic [TW_W-1:0] w_im_raw;
     logic signed [TW_W-1:0] w_re;
     logic signed [TW_W-1:0] w_im;
 
-    integer idx;
+    int idx;
     string dumpfile;
 
     fft_twiddle_rom #(
@@ -26,7 +26,7 @@ module fft_twiddle_rom_tb #(
         .TW_W(TW_W)
     ) dut (
         .clk(clk),
-        .addr(addr),
+        .addr(addr_idx[ADDR_W-1:0]),
         .w(w)
     );
 
@@ -56,7 +56,7 @@ module fft_twiddle_rom_tb #(
     end
 
     initial begin
-        addr = '0;
+        addr_idx = '0;
 
         // Read all ROM words through synchronous output.
         @(negedge clk);
@@ -67,13 +67,13 @@ module fft_twiddle_rom_tb #(
         $display("idx addr raw_hex imag_int imag_real real_int real_real");
 
         for (idx = 0; idx < DEPTH; idx = idx + 1) begin
-            addr = idx[ADDR_W-1:0];
+            addr_idx = $unsigned(idx);
             @(posedge clk);
             #1;
             $display(
                 "%0d %0d 0x%0h %0d %0.14f %0d %0.14f",
                 idx,
-                addr,
+                addr_idx,
                 w,
                 w_im,
                 fixed_to_real(w_im),

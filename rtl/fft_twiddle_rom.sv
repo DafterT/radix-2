@@ -2,21 +2,24 @@
 
 module fft_twiddle_rom
 #(
-    parameter int FFT_N     = 64,
-    parameter int TW_W      = 16
+    parameter  int FFT_N = 64,
+    parameter  int TW_W  = 16,
+
+    localparam int DEPTH = FFT_N / 2,
+    localparam int ADDR_W = (DEPTH > 1) ? $clog2(DEPTH) : 1
 )
 (
-    input  logic                         clk,
-    input  logic [$clog2(FFT_N/2)-1:0]   addr,
-    output logic [2*TW_W-1:0]            w
+    input  logic              clk,
+    input  logic [ADDR_W-1:0] addr,
+    output logic [2*TW_W-1:0] w
 );
 
     //--------------------------------------------------------------------------
     // Проверки параметров
     //--------------------------------------------------------------------------
     initial begin
-        if (FFT_N < 4)
-            $fatal(1, "fft_twiddle_rom: FFT_N must be >= 4");
+        if (FFT_N < 2)
+            $fatal(1, "fft_twiddle_rom: FFT_N must be >= 2");
 
         if ((FFT_N & (FFT_N - 1)) != 0)
             $fatal(1, "fft_twiddle_rom: FFT_N must be power of two");
@@ -25,7 +28,6 @@ module fft_twiddle_rom
             $fatal(1, "fft_twiddle_rom: TW_W must be >= 2");
     end
 
-    localparam int  DEPTH = FFT_N / 2;
     localparam int  FRAC_BITS = TW_W - 2;
     localparam real PI    = 3.14159265358979323846;
 

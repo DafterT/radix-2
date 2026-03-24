@@ -13,9 +13,9 @@ module radix2_top_tb
 );
 
     localparam int DEPTH               = FFT_N / 2;
-    localparam int ADDR_W              = $clog2(DEPTH);
+    localparam int ADDR_W              = (DEPTH > 1) ? $clog2(DEPTH) : 1;
     localparam int FRAC_BITS           = TW_W - 2;
-    localparam logic [ADDR_W-1:0] LAST_ADDR = DEPTH - 1;
+    localparam int LAST_ADDR           = DEPTH - 1;
     localparam int HALF_CLK_PERIOD_NS  = CLK_PERIOD_NS / 2;
     localparam int PIPE_LAST           = VALID_LATENCY - 1;
     localparam int ROUND_TRUNC         = 32 - ROUND_OWID;
@@ -40,7 +40,7 @@ module radix2_top_tb
     logic signed [15:0] exp_re_pipe   [0:PIPE_LAST];
     logic signed [15:0] exp_im_pipe   [0:PIPE_LAST];
 
-    logic [ADDR_W-1:0] expected_addr_q;
+    int unsigned expected_addr_q;
     logic signed [31:0] twiddle_ref;
     logic signed [31:0] mul_re_ref;
     logic signed [31:0] mul_im_ref;
@@ -90,7 +90,7 @@ module radix2_top_tb
     endfunction
 
     function automatic logic signed [31:0] twiddle_at_addr(
-        input logic [ADDR_W-1:0] addr
+        input int unsigned addr
     );
         real angle;
         real re_v;
@@ -256,7 +256,7 @@ module radix2_top_tb
         rst = 1'b0;
 
         while (!done) begin
-            if (dut.twiddle_addr !== expected_addr_q) begin
+            if (dut.twiddle_addr !== expected_addr_q[ADDR_W-1:0]) begin
                 fails_count = fails_count + 1;
                 $display(
                     "FAIL cycle=%0d: addr_o=%0d exp_addr=%0d valid_i=%0b last_i=%0b",
