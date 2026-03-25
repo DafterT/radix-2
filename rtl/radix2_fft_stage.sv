@@ -23,13 +23,12 @@ module radix2_fft_stage #(
             $fatal(1, "radix2_fft_stage: FFT_N must be power of two");
     end
 
-    localparam int TW_W                       = 16;
-    localparam int TWIDDLE_PACK_W             = 2 * TW_W;
-    localparam int DEPTH                      = FFT_N / 2;
-    localparam int ADDR_W                     = (DEPTH > 1) ? $clog2(DEPTH) : 1;
-    localparam int INPUT_ALIGN_DEPTH          = 1;
-    localparam int STAGE_OUTPUT_DELAY_CYCLES  = 5;
-    localparam int LAST_ALIGN_DEPTH           = STAGE_OUTPUT_DELAY_CYCLES + 1;
+    localparam int TW_W              = 16;
+    localparam int TWIDDLE_PACK_W    = 2 * TW_W;
+    localparam int DEPTH             = FFT_N / 2;
+    localparam int ADDR_W            = (DEPTH > 1) ? $clog2(DEPTH) : 1;
+    localparam int INPUT_ALIGN_DEPTH = 1;
+    localparam int LAST_ALIGN_DEPTH  = 6;
 
     logic                      ab_aligned_vld;
     logic [63:0]               ab_aligned;
