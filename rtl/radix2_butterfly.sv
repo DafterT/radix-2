@@ -12,7 +12,7 @@ module radix2_butterfly (
     output logic [65:0] b_out  // [65:33] = im (Q19.14), [32:0] = re (Q19.14)
 );
 
-    localparam int MUL_LATENCY_CYCLES = 3;
+    localparam int MUL_LATENCY_CYCLES = 4;
 
     logic        [31:0] a_aligned;
     logic               a_aligned_vld;
@@ -44,7 +44,7 @@ module radix2_butterfly (
 
     shift_register_with_valid #(
         .width(32),
-        .depth(MUL_LATENCY_CYCLES + 1)
+        .depth(MUL_LATENCY_CYCLES)
     ) u_a_delay (
         .clk     (clk),
         .rst     (rst),
