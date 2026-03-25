@@ -181,7 +181,7 @@ module radix_2_butterfly_tb #(
         end
     endtask
 
-    radix_2_butterfly dut (
+    radix2_butterfly dut (
         .clk    (clk),
         .rst    (rst),
         .valid_i(valid_i),

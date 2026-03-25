@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
 
-module radix_2_butterfly (
+module radix2_butterfly (
     input  logic        clk,
     input  logic        rst,
     input  logic        valid_i,

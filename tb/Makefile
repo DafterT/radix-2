@@ -110,7 +110,7 @@ TB_BUTTERFLY := $(THIS_DIR)/$(TOP_BUTTERFLY).sv
 RTL_BUTTERFLY := $(ROOT_DIR)/rtl/DSP48E2_like.sv \
                  $(ROOT_DIR)/rtl/complex_mul_3dsp.sv \
                  $(ROOT_DIR)/rtl/shift_register_with_valid.sv \
-                 $(ROOT_DIR)/rtl/radix_2_butterfly.sv
+                 $(ROOT_DIR)/rtl/radix2_butterfly.sv
 SIMV_BUTTERFLY := $(BUILD_DIR)/$(TOP_BUTTERFLY).vvp
 VCD_BUTTERFLY ?= $(BUILD_DIR)/$(TOP_BUTTERFLY).vcd
 
