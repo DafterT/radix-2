@@ -6,12 +6,15 @@
 
 #define PI 3.14159265358979323846
 
+/* ===== Internal types ===== */
+
 typedef struct {
     int32_t re;
     int32_t im;
 } fixed_stage_cpx_q18_14_t;
 
-// Validate fixed-point stage model configuration.
+/* ===== Core model helpers ===== */
+
 static void fixed_stage_check_config(void) {
     if (FFT_N < 2) {
         fprintf(stderr, "radix2_fft_stage_model: FFT_N must be >= 2\n");
@@ -44,21 +47,8 @@ static int16_t fixed_stage_real_to_q2_14(double value) {
     return (int16_t)scaled;
 }
 
-static double fixed_stage_q2_14_to_real(int16_t value) {
-    return (double)value / (double)(1 << FIXED_STAGE_FRAC_BITS);
-}
-
 double fixed_stage_q19_14_to_real(int32_t value) {
     return (double)value / (double)(1 << FIXED_STAGE_FRAC_BITS);
-}
-
-static double fixed_stage_q16_0_to_real(int16_t value) {
-    return (double)value;
-}
-
-// Convert input backoff from dB to a linear amplitude scale.
-static double fixed_stage_white_noise_backoff_linear(void) {
-    return pow(10.0, WHITE_NOISE_BACKOFF_DB / 20.0);
 }
 
 static fixed_stage_cpx_q19_14_t fixed_stage_q16_0_to_q19_14(fixed_stage_cpx_q16_0_t value) {
@@ -88,21 +78,6 @@ static fixed_stage_cpx_q18_14_t fixed_stage_cpx_mul_q16_0_q2_14(
     return result;
 }
 
-static uint32_t fixed_stage_pack_q2_14(fixed_stage_cpx_q2_14_t value) {
-    return ((uint32_t)(uint16_t)value.im << 16) | (uint32_t)(uint16_t)value.re;
-}
-
-static uint64_t fixed_stage_pack_signed_33(int32_t value) {
-    uint64_t packed = (uint64_t)(uint32_t)value;
-
-    if (value < 0) {
-        packed |= (1ULL << 32);
-    }
-
-    return packed;
-}
-
-// Precompute one FFT_N twiddle table in fixed-point format.
 static void fixed_stage_compute_twiddles(fixed_stage_model_t *model) {
     for (int k = 0; k < FIXED_STAGE_TWIDDLE_COUNT; ++k) {
         double angle = 2.0 * PI * (double)k / (double)FFT_N;
@@ -112,7 +87,16 @@ static void fixed_stage_compute_twiddles(fixed_stage_model_t *model) {
     }
 }
 
-// Initialize fixed-point stage state and reset the twiddle index.
+static void fixed_stage_advance_twiddle_index(fixed_stage_model_t *model, int last_i) {
+    if (last_i || (model->twiddle_index == (FIXED_STAGE_TWIDDLE_COUNT - 1))) {
+        model->twiddle_index = 0;
+    } else {
+        model->twiddle_index += 1;
+    }
+}
+
+/* ===== Core model API ===== */
+
 void fixed_stage_init(fixed_stage_model_t *model) {
     fixed_stage_check_config();
     fixed_stage_compute_twiddles(model);
@@ -120,7 +104,6 @@ void fixed_stage_init(fixed_stage_model_t *model) {
     model->initialized = 1;
 }
 
-// Execute one ideal stage butterfly with the current fixed-point twiddle.
 fixed_stage_output_t fixed_stage_step(
     fixed_stage_model_t *model,
     int last_i,
@@ -147,19 +130,30 @@ fixed_stage_output_t fixed_stage_step(
     output.b.re = a_q19_14.re - bw_q18_14.re;
     output.b.im = a_q19_14.im - bw_q18_14.im;
 
-    if (last_i || (model->twiddle_index == (FIXED_STAGE_TWIDDLE_COUNT - 1))) {
-        model->twiddle_index = 0;
-    } else {
-        model->twiddle_index += 1;
-    }
+    fixed_stage_advance_twiddle_index(model, last_i);
 
     return output;
 }
 
-// Generate one local Q16.0 white-noise sample with dB backoff.
-static int16_t fixed_stage_white_noise_q16_0_sample(void) {
-    double normalized_noise = -1.0 + (2.0 * (double)rand() / (double)RAND_MAX);
-    double backed_off_noise = normalized_noise / fixed_stage_white_noise_backoff_linear();
+/* ===== Demo / test helpers ===== */
+
+static double fixed_stage_q2_14_to_real(int16_t value) {
+    return (double)value / (double)(1 << FIXED_STAGE_FRAC_BITS);
+}
+
+static double fixed_stage_q16_0_to_real(int16_t value) {
+    return (double)value;
+}
+
+static double fixed_stage_white_noise_backoff_linear(void) {
+    return pow(10.0, WHITE_NOISE_BACKOFF_DB / 20.0);
+}
+
+static int16_t fixed_stage_quantize_normalized_to_q16_0(
+    double normalized_noise,
+    double backoff_linear
+) {
+    double backed_off_noise = normalized_noise / backoff_linear;
     long quantized = lround(backed_off_noise * (double)INT16_MAX);
 
     if (quantized > INT16_MAX) {
@@ -173,15 +167,36 @@ static int16_t fixed_stage_white_noise_q16_0_sample(void) {
     return (int16_t)quantized;
 }
 
-// Fill one local frame of fixed-point white-noise samples.
-static void fixed_stage_fill_white_noise_signal(fixed_stage_cpx_q16_0_t signal[FFT_N]) {
+static int16_t fixed_stage_white_noise_q16_0_sample(double backoff_linear) {
+    double normalized_noise = -1.0 + (2.0 * (double)rand() / (double)RAND_MAX);
+
+    return fixed_stage_quantize_normalized_to_q16_0(normalized_noise, backoff_linear);
+}
+
+static void fixed_stage_fill_white_noise_signal(
+    fixed_stage_cpx_q16_0_t signal[FFT_N],
+    double backoff_linear
+) {
     for (int i = 0; i < FFT_N; ++i) {
-        signal[i].re = fixed_stage_white_noise_q16_0_sample();
-        signal[i].im = fixed_stage_white_noise_q16_0_sample();
+        signal[i].re = fixed_stage_white_noise_q16_0_sample(backoff_linear);
+        signal[i].im = fixed_stage_white_noise_q16_0_sample(backoff_linear);
     }
 }
 
-// Print the fixed-point twiddle table once before running the model.
+static uint32_t fixed_stage_pack_q2_14(fixed_stage_cpx_q2_14_t value) {
+    return ((uint32_t)(uint16_t)value.im << 16) | (uint32_t)(uint16_t)value.re;
+}
+
+static uint64_t fixed_stage_pack_signed_33(int32_t value) {
+    uint64_t packed = (uint64_t)(uint32_t)value;
+
+    if (value < 0) {
+        packed |= (1ULL << 32);
+    }
+
+    return packed;
+}
+
 static void fixed_stage_print_twiddle_table(const fixed_stage_model_t *model) {
     printf(
         "Twiddle table, FFT_N=%d, count=%d, format=Q2.14:\n",
@@ -224,7 +239,6 @@ static void fixed_stage_print_q19_14_signal(const char *name, fixed_stage_cpx_q1
     );
 }
 
-// Print one fixed-point butterfly call in a human-readable format.
 static void fixed_stage_print_step(
     int call_index,
     int twiddle_index,
@@ -247,22 +261,22 @@ static void fixed_stage_print_step(
     fixed_stage_print_q19_14_signal("b_o", output.b);
 }
 
-// Run one fixed-point frame of stage stimuli and print all butterflies.
 void fixed_stage_run_demo(void) {
     fixed_stage_model_t model = {0};
     fixed_stage_cpx_q16_0_t signal[FFT_N];
+    double backoff_linear = fixed_stage_white_noise_backoff_linear();
 
     srand(1);
-    fixed_stage_fill_white_noise_signal(signal);
+    fixed_stage_fill_white_noise_signal(signal, backoff_linear);
     fixed_stage_init(&model);
 
     printf(
         "Input stimulus: white noise in normalized range [-1, 1], backoff=%.2f dB, scale=1/%.6f\n\n",
         WHITE_NOISE_BACKOFF_DB,
-        fixed_stage_white_noise_backoff_linear()
+        backoff_linear
     );
     fixed_stage_print_twiddle_table(&model);
-    printf("\nStage outputs for one 64-point frame:\n");
+    printf("\nStage outputs for one %d-point frame:\n", FFT_N);
 
     for (int pair_index = 0; pair_index < FIXED_STAGE_TWIDDLE_COUNT; ++pair_index) {
         int last_i = (pair_index == (FIXED_STAGE_TWIDDLE_COUNT - 1));

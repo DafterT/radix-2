@@ -30,6 +30,8 @@ typedef struct {
     double_stage_cpx_t twiddles[DOUBLE_STAGE_TWIDDLE_COUNT];
 } double_stage_model_t;
 
+/* ===== Core model API ===== */
+
 void double_stage_init(double_stage_model_t *model);
 double_stage_output_t double_stage_step(
     double_stage_model_t *model,
@@ -37,6 +39,9 @@ double_stage_output_t double_stage_step(
     double_stage_cpx_t a_i,
     double_stage_cpx_t b_i
 );
+
+/* ===== Demo / test helpers ===== */
+
 void double_stage_run_demo(void);
 
 #endif

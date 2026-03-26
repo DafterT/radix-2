@@ -3,7 +3,7 @@
 #endif
 
 #ifndef WHITE_NOISE_BACKOFF_DB
-#define WHITE_NOISE_BACKOFF_DB 10.0
+#define WHITE_NOISE_BACKOFF_DB 20.0
 #endif
 
 #include "radix2_fft_stage_model.h"
@@ -14,15 +14,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// Convert input backoff from dB to a linear amplitude scale.
+#define COMPARE_PAIR_COUNT (FFT_N / 2)
+
+/* ===== Comparison math ===== */
+
 static double compare_white_noise_backoff_linear(void) {
     return pow(10.0, WHITE_NOISE_BACKOFF_DB / 20.0);
 }
 
-// Generate one local Q16.0 white-noise sample with dB backoff.
-static int16_t compare_white_noise_q16_0_sample(void) {
-    double normalized_noise = -1.0 + (2.0 * (double)rand() / (double)RAND_MAX);
-    double backed_off_noise = normalized_noise / compare_white_noise_backoff_linear();
+static int16_t compare_quantize_normalized_to_q16_0(
+    double normalized_noise,
+    double backoff_linear
+) {
+    double backed_off_noise = normalized_noise / backoff_linear;
     long quantized = lround(backed_off_noise * (double)INT16_MAX);
 
     if (quantized > INT16_MAX) {
@@ -36,14 +40,6 @@ static int16_t compare_white_noise_q16_0_sample(void) {
     return (int16_t)quantized;
 }
 
-// Fill one local frame of fixed-point white-noise samples for comparison.
-static void compare_fill_white_noise_signal(fixed_stage_cpx_q16_0_t signal[FFT_N]) {
-    for (int i = 0; i < FFT_N; ++i) {
-        signal[i].re = compare_white_noise_q16_0_sample();
-        signal[i].im = compare_white_noise_q16_0_sample();
-    }
-}
-
 static double_stage_cpx_t compare_q16_input_to_double(fixed_stage_cpx_q16_0_t value) {
     double_stage_cpx_t result;
 
@@ -53,32 +49,62 @@ static double_stage_cpx_t compare_q16_input_to_double(fixed_stage_cpx_q16_0_t va
     return result;
 }
 
-static double compare_sqnr_db(double signal_power, double noise_power) {
-    if (noise_power == 0.0) {
-        return INFINITY;
-    }
+static double_stage_cpx_t compare_fixed_output_to_double(fixed_stage_cpx_q19_14_t value) {
+    double_stage_cpx_t result;
 
-    return 10.0 * log10(signal_power / noise_power);
+    result.re = fixed_stage_q19_14_to_real(value.re);
+    result.im = fixed_stage_q19_14_to_real(value.im);
+
+    return result;
 }
 
 static double compare_cpx_power(double_stage_cpx_t value) {
     return (value.re * value.re) + (value.im * value.im);
 }
 
+// SQNR = 10 * log10(sum(|signal|^2) / sum(|error|^2)).
+static double compare_sqnr_db(double signal_power, double noise_power) {
+    if (noise_power <= 0.0) {
+        return INFINITY;
+    }
+
+    return 10.0 * log10(signal_power / noise_power);
+}
+
+/* ===== Stimulus and formatted output ===== */
+
+static int16_t compare_white_noise_q16_0_sample(double backoff_linear) {
+    double normalized_noise = -1.0 + (2.0 * (double)rand() / (double)RAND_MAX);
+
+    return compare_quantize_normalized_to_q16_0(normalized_noise, backoff_linear);
+}
+
+static void compare_fill_white_noise_signal(
+    fixed_stage_cpx_q16_0_t signal[FFT_N],
+    double backoff_linear
+) {
+    for (int i = 0; i < FFT_N; ++i) {
+        signal[i].re = compare_white_noise_q16_0_sample(backoff_linear);
+        signal[i].im = compare_white_noise_q16_0_sample(backoff_linear);
+    }
+}
+
 static void compare_print_complex(const char *name, double_stage_cpx_t value) {
     printf("  %s: re=% .12f, im=% .12f\n", name, value.re, value.im);
 }
 
-// Run both stage models on the same local stimulus and print the difference.
+/* ===== Comparison runner ===== */
+
 static void compare_run(void) {
     fixed_stage_model_t fixed_model = {0};
     double_stage_model_t double_model = {0};
     fixed_stage_cpx_q16_0_t signal[FFT_N];
+    double backoff_linear = compare_white_noise_backoff_linear();
     double reference_power = 0.0;
     double error_power = 0.0;
 
     srand(1);
-    compare_fill_white_noise_signal(signal);
+    compare_fill_white_noise_signal(signal, backoff_linear);
     fixed_stage_init(&fixed_model);
     double_stage_init(&double_model);
 
@@ -86,28 +112,24 @@ static void compare_run(void) {
         "Stage model comparison, FFT_N=%d, backoff=%.2f dB, scale=1/%.6f\n\n",
         FFT_N,
         WHITE_NOISE_BACKOFF_DB,
-        compare_white_noise_backoff_linear()
+        backoff_linear
     );
 
-    for (int pair_index = 0; pair_index < (FFT_N / 2); ++pair_index) {
-        int last_i = (pair_index == ((FFT_N / 2) - 1));
+    for (int pair_index = 0; pair_index < COMPARE_PAIR_COUNT; ++pair_index) {
+        int last_i = (pair_index == (COMPARE_PAIR_COUNT - 1));
         fixed_stage_cpx_q16_0_t a_fixed = signal[2 * pair_index];
         fixed_stage_cpx_q16_0_t b_fixed = signal[(2 * pair_index) + 1];
         double_stage_cpx_t a_double = compare_q16_input_to_double(a_fixed);
         double_stage_cpx_t b_double = compare_q16_input_to_double(b_fixed);
         fixed_stage_output_t fixed_output = fixed_stage_step(&fixed_model, last_i, a_fixed, b_fixed);
         double_stage_output_t reference_output = double_stage_step(&double_model, last_i, a_double, b_double);
-        double_stage_cpx_t fixed_a;
-        double_stage_cpx_t fixed_b;
+        double_stage_cpx_t fixed_a = compare_fixed_output_to_double(fixed_output.a);
+        double_stage_cpx_t fixed_b = compare_fixed_output_to_double(fixed_output.b);
         double_stage_cpx_t error_a;
         double_stage_cpx_t error_b;
 
-        fixed_a.re = fixed_stage_q19_14_to_real(fixed_output.a.re);
-        fixed_a.im = fixed_stage_q19_14_to_real(fixed_output.a.im);
-        fixed_b.re = fixed_stage_q19_14_to_real(fixed_output.b.re);
-        fixed_b.im = fixed_stage_q19_14_to_real(fixed_output.b.im);
-
-        // SQNR reference is the ideal double model, noise is the fixed-point error.
+        // SQNR uses the ideal double-precision output as the signal and the
+        // fixed-point deviation from that output as the noise.
         error_a.re = reference_output.a.re - fixed_a.re;
         error_a.im = reference_output.a.im - fixed_a.im;
         error_b.re = reference_output.b.re - fixed_b.re;

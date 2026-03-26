@@ -6,7 +6,8 @@
 
 #define PI 3.14159265358979323846
 
-// Validate double-precision stage model configuration.
+/* ===== Core model helpers ===== */
+
 static void double_stage_check_config(void) {
     if (FFT_N < 2) {
         fprintf(stderr, "radix2_fft_stage_model_double: FFT_N must be >= 2\n");
@@ -24,11 +25,6 @@ static void double_stage_check_config(void) {
     }
 }
 
-// Convert input backoff from dB to a linear amplitude scale.
-static double double_stage_white_noise_backoff_linear(void) {
-    return pow(10.0, WHITE_NOISE_BACKOFF_DB / 20.0);
-}
-
 static double_stage_cpx_t double_stage_cpx_mul(double_stage_cpx_t a, double_stage_cpx_t b) {
     double_stage_cpx_t result;
 
@@ -38,7 +34,6 @@ static double_stage_cpx_t double_stage_cpx_mul(double_stage_cpx_t a, double_stag
     return result;
 }
 
-// Precompute one FFT_N twiddle table in double format.
 static void double_stage_compute_twiddles(double_stage_model_t *model) {
     for (int k = 0; k < DOUBLE_STAGE_TWIDDLE_COUNT; ++k) {
         double angle = 2.0 * PI * (double)k / (double)FFT_N;
@@ -48,7 +43,16 @@ static void double_stage_compute_twiddles(double_stage_model_t *model) {
     }
 }
 
-// Initialize double stage state and reset the twiddle index.
+static void double_stage_advance_twiddle_index(double_stage_model_t *model, int last_i) {
+    if (last_i || (model->twiddle_index == (DOUBLE_STAGE_TWIDDLE_COUNT - 1))) {
+        model->twiddle_index = 0;
+    } else {
+        model->twiddle_index += 1;
+    }
+}
+
+/* ===== Core model API ===== */
+
 void double_stage_init(double_stage_model_t *model) {
     double_stage_check_config();
     double_stage_compute_twiddles(model);
@@ -56,7 +60,6 @@ void double_stage_init(double_stage_model_t *model) {
     model->initialized = 1;
 }
 
-// Execute one ideal stage butterfly with the current double twiddle.
 double_stage_output_t double_stage_step(
     double_stage_model_t *model,
     int last_i,
@@ -80,19 +83,22 @@ double_stage_output_t double_stage_step(
     output.b.re = a_i.re - bw.re;
     output.b.im = a_i.im - bw.im;
 
-    if (last_i || (model->twiddle_index == (DOUBLE_STAGE_TWIDDLE_COUNT - 1))) {
-        model->twiddle_index = 0;
-    } else {
-        model->twiddle_index += 1;
-    }
+    double_stage_advance_twiddle_index(model, last_i);
 
     return output;
 }
 
-// Generate one local Q16.0-scaled double white-noise sample with dB backoff.
-static double double_stage_white_noise_q16_0_scaled_sample(void) {
-    double normalized_noise = -1.0 + (2.0 * (double)rand() / (double)RAND_MAX);
-    double backed_off_noise = normalized_noise / double_stage_white_noise_backoff_linear();
+/* ===== Demo / test helpers ===== */
+
+static double double_stage_white_noise_backoff_linear(void) {
+    return pow(10.0, WHITE_NOISE_BACKOFF_DB / 20.0);
+}
+
+static double double_stage_quantize_normalized_to_q16_0_scaled(
+    double normalized_noise,
+    double backoff_linear
+) {
+    double backed_off_noise = normalized_noise / backoff_linear;
     long quantized = lround(backed_off_noise * (double)INT16_MAX);
 
     if (quantized > INT16_MAX) {
@@ -106,15 +112,22 @@ static double double_stage_white_noise_q16_0_scaled_sample(void) {
     return (double)quantized;
 }
 
-// Fill one local frame of Q16.0-scaled double white-noise samples.
-static void double_stage_fill_white_noise_signal(double_stage_cpx_t signal[FFT_N]) {
+static double double_stage_white_noise_q16_0_scaled_sample(double backoff_linear) {
+    double normalized_noise = -1.0 + (2.0 * (double)rand() / (double)RAND_MAX);
+
+    return double_stage_quantize_normalized_to_q16_0_scaled(normalized_noise, backoff_linear);
+}
+
+static void double_stage_fill_white_noise_signal(
+    double_stage_cpx_t signal[FFT_N],
+    double backoff_linear
+) {
     for (int i = 0; i < FFT_N; ++i) {
-        signal[i].re = double_stage_white_noise_q16_0_scaled_sample();
-        signal[i].im = double_stage_white_noise_q16_0_scaled_sample();
+        signal[i].re = double_stage_white_noise_q16_0_scaled_sample(backoff_linear);
+        signal[i].im = double_stage_white_noise_q16_0_scaled_sample(backoff_linear);
     }
 }
 
-// Print the double twiddle table once before running the model.
 static void double_stage_print_twiddle_table(const double_stage_model_t *model) {
     printf(
         "Twiddle table, FFT_N=%d, count=%d, format=double:\n",
@@ -141,7 +154,6 @@ static void double_stage_print_signal(const char *name, double_stage_cpx_t value
     );
 }
 
-// Print one double-precision butterfly call in a human-readable format.
 static void double_stage_print_step(
     int call_index,
     int twiddle_index,
@@ -164,22 +176,22 @@ static void double_stage_print_step(
     double_stage_print_signal("b_o", output.b);
 }
 
-// Run one double-precision frame of stage stimuli and print all butterflies.
 void double_stage_run_demo(void) {
     double_stage_model_t model = {0};
     double_stage_cpx_t signal[FFT_N];
+    double backoff_linear = double_stage_white_noise_backoff_linear();
 
     srand(1);
-    double_stage_fill_white_noise_signal(signal);
+    double_stage_fill_white_noise_signal(signal, backoff_linear);
     double_stage_init(&model);
 
     printf(
         "Input stimulus: white noise in normalized range [-1, 1], backoff=%.2f dB, Q16.0-scaled double input, scale=1/%.6f\n\n",
         WHITE_NOISE_BACKOFF_DB,
-        double_stage_white_noise_backoff_linear()
+        backoff_linear
     );
     double_stage_print_twiddle_table(&model);
-    printf("\nStage outputs for one 64-point frame:\n");
+    printf("\nStage outputs for one %d-point frame:\n", FFT_N);
 
     for (int pair_index = 0; pair_index < DOUBLE_STAGE_TWIDDLE_COUNT; ++pair_index) {
         int last_i = (pair_index == (DOUBLE_STAGE_TWIDDLE_COUNT - 1));
