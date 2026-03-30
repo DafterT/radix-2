@@ -43,8 +43,8 @@ module radix2_butterfly (
     endfunction
 
     shift_register_with_valid #(
-        .width(32),
-        .depth(MUL_LATENCY_CYCLES)
+        .WIDTH(32),
+        .DEPTH(MUL_LATENCY_CYCLES)
     ) u_a_delay (
         .clk     (clk),
         .rst     (rst),

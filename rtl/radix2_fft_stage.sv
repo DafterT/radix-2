@@ -42,8 +42,8 @@ module radix2_fft_stage #(
     logic                      last_aligned;
 
     shift_register_with_valid #(
-        .width(64),
-        .depth(INPUT_ALIGN_DEPTH)
+        .WIDTH(64),
+        .DEPTH(INPUT_ALIGN_DEPTH)
     ) u_ab_align (
         .clk     (clk),
         .rst     (rst),
@@ -88,8 +88,8 @@ module radix2_fft_stage #(
     );
 
     shift_register #(
-        .width(1),
-        .depth(LAST_ALIGN_DEPTH)
+        .WIDTH(1),
+        .DEPTH(LAST_ALIGN_DEPTH)
     ) u_last_align (
         .clk     (clk),
         .rst     (rst),

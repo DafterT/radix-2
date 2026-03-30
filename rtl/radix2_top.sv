@@ -38,8 +38,8 @@ module radix2_top
     logic        [VALID_PIPE_STAGES-1:0] valid_pipe;
 
     shift_register_with_valid #(
-        .width(PACKED_COMPLEX_W),
-        .depth(INPUT_ALIGN_DEPTH)
+        .WIDTH(PACKED_COMPLEX_W),
+        .DEPTH(INPUT_ALIGN_DEPTH)
     ) u_input_delay (
         .clk     (clk),
         .rst     (rst),
