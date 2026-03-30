@@ -19,8 +19,8 @@ module radix2_butterfly (
     logic signed [31:0] bw_re;
     logic signed [31:0] bw_im;
 
-    logic signed [15:0] a_re_dly;
-    logic signed [15:0] a_im_dly;
+    logic signed [15:0] a_re_aligned;
+    logic signed [15:0] a_im_aligned;
 
     logic signed [32:0] a_re_q19_14;
     logic signed [32:0] a_im_q19_14;
@@ -63,11 +63,11 @@ module radix2_butterfly (
         .out_im(bw_im)
     );
 
-    assign a_re_dly = $signed(a_aligned[15:0]);
-    assign a_im_dly = $signed(a_aligned[31:16]);
+    assign a_re_aligned = $signed(a_aligned[15:0]);
+    assign a_im_aligned = $signed(a_aligned[31:16]);
 
-    assign a_re_q19_14 = q16_0_to_q19_14(a_re_dly);
-    assign a_im_q19_14 = q16_0_to_q19_14(a_im_dly);
+    assign a_re_q19_14 = q16_0_to_q19_14(a_re_aligned);
+    assign a_im_q19_14 = q16_0_to_q19_14(a_im_aligned);
     assign bw_re_q19_14 = $signed({bw_re[31], bw_re});
     assign bw_im_q19_14 = $signed({bw_im[31], bw_im});
 
