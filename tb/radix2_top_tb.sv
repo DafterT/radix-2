@@ -4,7 +4,7 @@ module radix2_top_tb
 #(
     parameter int FFT_N         = 64,
     parameter int TW_W          = 16,
-    parameter int ROUND_OWID    = 18,
+    parameter int ROUND_OWID    = 19,
     parameter int OUT_W         = 16,
     parameter int RESET_CYCLES  = 4,
     parameter int CLK_PERIOD_NS = 10,
@@ -12,15 +12,21 @@ module radix2_top_tb
     parameter int TIMEOUT_CYCLES = 64
 );
 
-    localparam int DEPTH               = FFT_N / 2;
-    localparam int ADDR_W              = (DEPTH > 1) ? $clog2(DEPTH) : 1;
-    localparam int FRAC_BITS           = TW_W - 2;
-    localparam int LAST_ADDR           = DEPTH - 1;
-    localparam int HALF_CLK_PERIOD_NS  = CLK_PERIOD_NS / 2;
-    localparam int PIPE_LAST           = VALID_LATENCY - 1;
-    localparam int ROUND_TRUNC         = 32 - ROUND_OWID;
-    localparam int NUM_STIM            = 8;
-    localparam real PI                 = 3.14159265358979323846;
+    localparam int DEPTH                = FFT_N / 2;
+    localparam int ADDR_W               = (DEPTH > 1) ? $clog2(DEPTH) : 1;
+    localparam int FRAC_BITS            = TW_W - 2;
+    localparam int LAST_ADDR            = DEPTH - 1;
+    localparam int HALF_CLK_PERIOD_NS   = CLK_PERIOD_NS / 2;
+    localparam int PIPE_LAST            = VALID_LATENCY - 1;
+    localparam int IQ_COMP_W            = 16;
+    localparam int PACKED_COMPLEX_W     = 2 * IQ_COMP_W;
+    localparam int CMUL_TERM_W          = IQ_COMP_W + TW_W;
+    localparam int CMUL_SUM_GROWTH_W    = 1;
+    localparam int MUL_OUT_W            = CMUL_TERM_W + CMUL_SUM_GROWTH_W;
+    localparam int EXPECTED_ROUND_OWID  = MUL_OUT_W - FRAC_BITS;
+    localparam int ROUND_TRUNC          = MUL_OUT_W - ROUND_OWID;
+    localparam int NUM_STIM             = 8;
+    localparam real PI                  = 3.14159265358979323846;
 
     logic clk;
     logic rst;
@@ -43,8 +49,8 @@ module radix2_top_tb
 
     int unsigned expected_addr_q;
     logic signed [31:0] twiddle_ref;
-    logic signed [31:0] mul_re_ref;
-    logic signed [31:0] mul_im_ref;
+    logic signed [MUL_OUT_W-1:0] mul_re_ref;
+    logic signed [MUL_OUT_W-1:0] mul_im_ref;
     logic signed [ROUND_OWID-1:0] round_re_ref;
     logic signed [ROUND_OWID-1:0] round_im_ref;
 
@@ -58,6 +64,18 @@ module radix2_top_tb
     bit done;
 
     string dumpfile;
+
+    initial begin
+        if (($bits(iq) != PACKED_COMPLEX_W) || ($bits(iq_o) != PACKED_COMPLEX_W))
+            $fatal(1, "radix2_top_tb: iq/iq_o widths must be %0d bits", PACKED_COMPLEX_W);
+
+        if (ROUND_OWID != EXPECTED_ROUND_OWID)
+            $fatal(
+                1,
+                "radix2_top_tb: ROUND_OWID must equal MUL_OUT_W - FRAC_BITS = %0d",
+                EXPECTED_ROUND_OWID
+            );
+    end
 
     assign iq_o_im = $signed(iq_o[31:16]);
     assign iq_o_re = $signed(iq_o[15:0]);
@@ -109,7 +127,7 @@ module radix2_top_tb
     end
     endfunction
 
-    function automatic logic signed [31:0] calc_expected_mul_re(
+    function automatic logic signed [MUL_OUT_W-1:0] calc_expected_mul_re(
         input logic signed [31:0] x_in,
         input logic signed [31:0] y_in
     );
@@ -117,8 +135,8 @@ module radix2_top_tb
         logic signed [15:0] a_im;
         logic signed [15:0] b_re;
         logic signed [15:0] b_im;
-        logic signed [31:0] p0;
-        logic signed [31:0] p1;
+        logic signed [MUL_OUT_W-1:0] p0;
+        logic signed [MUL_OUT_W-1:0] p1;
     begin
         a_im = $signed(x_in[31:16]);
         a_re = $signed(x_in[15:0]);
@@ -132,7 +150,7 @@ module radix2_top_tb
     end
     endfunction
 
-    function automatic logic signed [31:0] calc_expected_mul_im(
+    function automatic logic signed [MUL_OUT_W-1:0] calc_expected_mul_im(
         input logic signed [31:0] x_in,
         input logic signed [31:0] y_in
     );
@@ -140,8 +158,8 @@ module radix2_top_tb
         logic signed [15:0] a_im;
         logic signed [15:0] b_re;
         logic signed [15:0] b_im;
-        logic signed [31:0] p0;
-        logic signed [31:0] p1;
+        logic signed [MUL_OUT_W-1:0] p0;
+        logic signed [MUL_OUT_W-1:0] p1;
     begin
         a_im = $signed(x_in[31:16]);
         a_re = $signed(x_in[15:0]);
@@ -156,10 +174,10 @@ module radix2_top_tb
     endfunction
 
     function automatic logic signed [ROUND_OWID-1:0] round_convergent_ref(
-        input logic signed [31:0] i_data
+        input logic signed [MUL_OUT_W-1:0] i_data
     );
-        logic signed [31:0] w_convergent;
-        logic signed [31:0] round_bias;
+        logic signed [MUL_OUT_W-1:0] w_convergent;
+        logic signed [MUL_OUT_W-1:0] round_bias;
     begin
         round_bias = $signed({
             {ROUND_OWID{1'b0}},
@@ -169,7 +187,7 @@ module radix2_top_tb
 
         w_convergent = i_data + round_bias;
 
-        round_convergent_ref = $signed(w_convergent[31:ROUND_TRUNC]);
+        round_convergent_ref = $signed(w_convergent[MUL_OUT_W-1:ROUND_TRUNC]);
     end
     endfunction
 
@@ -338,7 +356,7 @@ module radix2_top_tb
                     exp_im_pipe[0]    = clip_ref(round_im_ref);
                     inputs_accepted   = inputs_accepted + 1;
 
-                    if (stim_last[stim_idx] || (expected_addr_q == LAST_ADDR))
+                    if (stim_last[stim_idx] || (expected_addr_q == $unsigned(LAST_ADDR)))
                         expected_addr_q = '0;
                     else
                         expected_addr_q = expected_addr_q + 1'b1;

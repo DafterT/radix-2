@@ -20,8 +20,8 @@ module complex_mul_3dsp_file_tb #(
     // Интерфейс DUT.
     logic [31:0] x;
     logic [31:0] y;
-    logic signed [31:0] out_re;
-    logic signed [31:0] out_im;
+    logic signed [32:0] out_re;
+    logic signed [32:0] out_im;
 
     // Служебные переменные для чтения файла и статистики.
     integer file_desc;
@@ -44,21 +44,21 @@ module complex_mul_3dsp_file_tb #(
     integer                 id_pipe    [0:PIPE_LAST];
     logic [31:0]            x_pipe     [0:PIPE_LAST];
     logic [31:0]            y_pipe     [0:PIPE_LAST];
-    logic signed [31:0]     exp_re_pipe[0:PIPE_LAST];
-    logic signed [31:0]     exp_im_pipe[0:PIPE_LAST];
+    logic signed [32:0]     exp_re_pipe[0:PIPE_LAST];
+    logic signed [32:0]     exp_im_pipe[0:PIPE_LAST];
 
     string input_file;
     string dumpfile;
 
     // Эталонная действительная часть:
     // Re = ar*br - ai*bi
-    // Q16.0 * Q2.14 => Q18.14 (signed [31:0]).
-    function automatic logic signed [31:0] calc_expected_re(
+    // Q16.0 * Q2.14 => Q19.14 (signed [32:0]).
+    function automatic logic signed [32:0] calc_expected_re(
         input logic signed [31:0] x_in,
         input logic signed [31:0] y_in
     );
         logic signed [15:0] a_re, a_im, b_re, b_im;
-        logic signed [31:0] p0, p1;
+        logic signed [32:0] p0, p1;
         begin
             a_im = $signed(x_in[31:16]);
             a_re = $signed(x_in[15:0]);
@@ -74,13 +74,13 @@ module complex_mul_3dsp_file_tb #(
 
     // Эталонная мнимая часть:
     // Im = ar*bi + ai*br
-    // Q16.0 * Q2.14 => Q18.14 (signed [31:0]).
-    function automatic logic signed [31:0] calc_expected_im(
+    // Q16.0 * Q2.14 => Q19.14 (signed [32:0]).
+    function automatic logic signed [32:0] calc_expected_im(
         input logic signed [31:0] x_in,
         input logic signed [31:0] y_in
     );
         logic signed [15:0] a_re, a_im, b_re, b_im;
-        logic signed [31:0] p0, p1;
+        logic signed [32:0] p0, p1;
         begin
             a_im = $signed(x_in[31:16]);
             a_re = $signed(x_in[15:0]);
@@ -112,9 +112,11 @@ module complex_mul_3dsp_file_tb #(
         end
     endfunction
 
-    function automatic real q18_14_to_real(input logic signed [31:0] v);
+    function automatic real q19_14_to_real(input logic signed [32:0] v);
+        longint signed wide_v;
         begin
-            q18_14_to_real = $itor(v) / (1 << 14);
+            wide_v = v;
+            q19_14_to_real = real'(wide_v) / (1 << 14);
         end
     endfunction
 
@@ -122,8 +124,8 @@ module complex_mul_3dsp_file_tb #(
         input int vec_id,
         input logic [31:0] x_in,
         input logic [31:0] y_in,
-        input logic signed [31:0] out_re_in,
-        input logic signed [31:0] out_im_in
+        input logic signed [32:0] out_re_in,
+        input logic signed [32:0] out_im_in
     );
         begin
             $display("PASS vec=%0d", vec_id);
@@ -142,11 +144,11 @@ module complex_mul_3dsp_file_tb #(
                 q2_14_to_real(packed_im16(y_in))
             );
             $display(
-                "  out = %0d + j%0d    (Q18.14 => %0.6f + j%0.6f)",
+                "  out = %0d + j%0d    (Q19.14 => %0.6f + j%0.6f)",
                 out_re_in,
                 out_im_in,
-                q18_14_to_real(out_re_in),
-                q18_14_to_real(out_im_in)
+                q19_14_to_real(out_re_in),
+                q19_14_to_real(out_im_in)
             );
         end
     endtask
@@ -155,10 +157,10 @@ module complex_mul_3dsp_file_tb #(
         input int vec_id,
         input logic [31:0] x_in,
         input logic [31:0] y_in,
-        input logic signed [31:0] got_re_in,
-        input logic signed [31:0] got_im_in,
-        input logic signed [31:0] exp_re_in,
-        input logic signed [31:0] exp_im_in
+        input logic signed [32:0] got_re_in,
+        input logic signed [32:0] got_im_in,
+        input logic signed [32:0] exp_re_in,
+        input logic signed [32:0] exp_im_in
     );
         begin
             $display("FAIL vec=%0d", vec_id);
@@ -177,18 +179,18 @@ module complex_mul_3dsp_file_tb #(
                 q2_14_to_real(packed_im16(y_in))
             );
             $display(
-                "  got  = %0d + j%0d    (Q18.14 => %0.6f + j%0.6f)",
+                "  got  = %0d + j%0d    (Q19.14 => %0.6f + j%0.6f)",
                 got_re_in,
                 got_im_in,
-                q18_14_to_real(got_re_in),
-                q18_14_to_real(got_im_in)
+                q19_14_to_real(got_re_in),
+                q19_14_to_real(got_im_in)
             );
             $display(
-                "  exp  = %0d + j%0d    (Q18.14 => %0.6f + j%0.6f)",
+                "  exp  = %0d + j%0d    (Q19.14 => %0.6f + j%0.6f)",
                 exp_re_in,
                 exp_im_in,
-                q18_14_to_real(exp_re_in),
-                q18_14_to_real(exp_im_in)
+                q19_14_to_real(exp_re_in),
+                q19_14_to_real(exp_im_in)
             );
         end
     endtask

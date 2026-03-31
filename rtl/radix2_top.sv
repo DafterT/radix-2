@@ -14,21 +14,25 @@ module radix2_top
     output logic        valid_o
 );
 
-    localparam int PACKED_COMPLEX_W  = 32;
-    localparam int MUL_OUT_W         = PACKED_COMPLEX_W;
+    localparam int IQ_COMP_W         = 16;
+    localparam int PACKED_COMPLEX_W  = 2 * IQ_COMP_W;
     localparam int INPUT_ALIGN_DEPTH = 1;
     localparam int VALID_PIPE_STAGES = 4;
     localparam int ADDR_W            = ((FFT_N / 2) > 1) ? $clog2(FFT_N / 2) : 1;
     localparam int OUT_W             = 16;
     localparam int TW_W              = 16;
-    localparam int ROUND_OWID        = 18;
+    localparam int TW_FRAC_W         = TW_W - 2;
+    localparam int CMUL_TERM_W       = IQ_COMP_W + TW_W;
+    localparam int CMUL_SUM_GROWTH_W = 1;
+    localparam int MUL_OUT_W         = CMUL_TERM_W + CMUL_SUM_GROWTH_W;
+    localparam int ROUND_OWID        = MUL_OUT_W - TW_FRAC_W;
     localparam int TWIDDLE_PACK_W    = 2 * TW_W;
 
     logic                                iq_aligned_vld;
     logic        [PACKED_COMPLEX_W-1:0]  iq_aligned;
     logic        [ADDR_W-1:0]            twiddle_addr;
     logic        [TWIDDLE_PACK_W-1:0]    twiddle_rom;
-    logic        [PACKED_COMPLEX_W-1:0]  twiddle_mul;
+    logic        [TWIDDLE_PACK_W-1:0]    twiddle_mul;
     logic signed [MUL_OUT_W-1:0]         mul_re;
     logic signed [MUL_OUT_W-1:0]         mul_im;
     logic signed [ROUND_OWID-1:0]        round_re;

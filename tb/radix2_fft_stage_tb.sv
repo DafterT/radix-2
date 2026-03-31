@@ -84,8 +84,10 @@ module radix2_fft_stage_tb #(
     function automatic real q19_14_to_real(
         input logic signed [32:0] value_in
     );
+        longint signed wide_value;
         begin
-            q19_14_to_real = $itor(value_in) / (1 << 14);
+            wide_value = $signed({{31{value_in[32]}}, value_in});
+            q19_14_to_real = real'(wide_value) / (1 << 14);
         end
     endfunction
 
