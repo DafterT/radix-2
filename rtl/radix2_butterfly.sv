@@ -18,13 +18,15 @@ module radix2_butterfly (
     localparam int A_WIDTH             = $bits(complex16_t);
     localparam int DSP_PIPELINE_STAGES = 3;
 
-    // 1 / SQRT(2) in Q1.17
+    // 1 / SQRT(2) в формате Q1.17
     localparam real INV_SQRT2_REAL = 1.0 / $sqrt(2.0);
     localparam logic signed [17:0] INV_SQRT2_Q1_17 = $rtoi(INV_SQRT2_REAL * (1 << 17));
 
+    // Выравнивание входа a по задержке
     complex16_t         a_aligned;
     logic               a_aligned_vld;
     complex33_t         bw;
+    // Приведение форматов перед DSP
     complex34_comp_t    a_re_q20_14;
     complex34_comp_t    a_im_q20_14;
     complex34_comp_t    bw_re_q20_14;
@@ -35,6 +37,7 @@ module radix2_butterfly (
     logic signed [26:0] bw_im_dsp_in;
     logic signed [29:0] bw_re_dsp_a;
     logic signed [29:0] bw_im_dsp_a;
+    // Сырые выходы DSP и суженные значения Q22.23
     logic signed [47:0] a_out_re_dsp_raw;
     logic signed [47:0] a_out_im_dsp_raw;
     logic signed [47:0] b_out_re_dsp_raw;
@@ -43,9 +46,10 @@ module radix2_butterfly (
     logic signed [44:0] a_out_im_q22_23;
     logic signed [44:0] b_out_re_q22_23;
     logic signed [44:0] b_out_im_q22_23;
+    // Постобработка до Q16.0
     complex16_t         a_out_q16_0;
     complex16_t         b_out_q16_0;
-    
+    // Пайплайн valid
     logic [DSP_PIPELINE_STAGES-1:0] valid_pipe;
 
     function automatic complex34_comp_t q16_0_to_q20_14(
@@ -68,7 +72,8 @@ module radix2_butterfly (
         input complex34_comp_t value_in
     );
         begin
-            // Q20.14 -> keep bits [33:8] => Q20.6, duplicate sign for preadder headroom.
+            // Q20.14 -> оставляем биты [33:8], получаем Q20.6
+            // и расширяем знак до 27 бит для preadder.
             q20_14_to_dsp_preadder = $signed({value_in[33], value_in[33:8]});
         end
     endfunction

@@ -31,11 +31,11 @@ module radix_2_butterfly_tb #(
 
     string dumpfile;
 
-    function automatic real q16_0_to_real(
+    function automatic integer q16_0_to_int(
         input complex16_comp_t value_in
     );
         begin
-            q16_0_to_real = $itor(value_in);
+            q16_0_to_int = value_in;
         end
     endfunction
 
@@ -56,16 +56,16 @@ module radix_2_butterfly_tb #(
         begin
             $display("DRIVE idx=%0d", vec_idx);
             $display(
-                "  a = 0x%08h  =>  %0.6f + j%0.6f  (Q16.0)",
+                "  a = 0x%08h  =>  %0d + j%0d  (Q16.0)",
                 a_in,
-                q16_0_to_real(a_in.re),
-                q16_0_to_real(a_in.im)
+                q16_0_to_int(a_in.re),
+                q16_0_to_int(a_in.im)
             );
             $display(
-                "  b = 0x%08h  =>  %0.6f + j%0.6f  (Q16.0)",
+                "  b = 0x%08h  =>  %0d + j%0d  (Q16.0)",
                 b_in,
-                q16_0_to_real(b_in.re),
-                q16_0_to_real(b_in.im)
+                q16_0_to_int(b_in.re),
+                q16_0_to_int(b_in.im)
             );
             $display(
                 "  W = 0x%08h  =>  %0.6f + j%0.6f  (Q2.14)",
@@ -84,16 +84,16 @@ module radix_2_butterfly_tb #(
         begin
             $display("OUT  idx=%0d", vec_idx);
             $display(
-                "  a_out = 0x%08h  =>  %0.6f + j%0.6f  (Q16.0)",
+                "  a_out = 0x%08h  =>  %0d + j%0d  (Q16.0)",
                 a_out_in,
-                q16_0_to_real(a_out_in.re),
-                q16_0_to_real(a_out_in.im)
+                q16_0_to_int(a_out_in.re),
+                q16_0_to_int(a_out_in.im)
             );
             $display(
-                "  b_out = 0x%08h  =>  %0.6f + j%0.6f  (Q16.0)",
+                "  b_out = 0x%08h  =>  %0d + j%0d  (Q16.0)",
                 b_out_in,
-                q16_0_to_real(b_out_in.re),
-                q16_0_to_real(b_out_in.im)
+                q16_0_to_int(b_out_in.re),
+                q16_0_to_int(b_out_in.im)
             );
         end
     endtask
