@@ -1,5 +1,7 @@
 `timescale 1ns/1ps
 
+import radix2_types_pkg::*;
+
 module radix2_top_tb
 #(
     parameter int FFT_N         = 64,
@@ -18,8 +20,8 @@ module radix2_top_tb
     localparam int LAST_ADDR            = DEPTH - 1;
     localparam int HALF_CLK_PERIOD_NS   = CLK_PERIOD_NS / 2;
     localparam int PIPE_LAST            = VALID_LATENCY - 1;
-    localparam int IQ_COMP_W            = 16;
-    localparam int PACKED_COMPLEX_W     = 2 * IQ_COMP_W;
+    localparam int IQ_COMP_W            = $bits(complex16_comp_t);
+    localparam int PACKED_COMPLEX_W     = $bits(complex16_t);
     localparam int CMUL_TERM_W          = IQ_COMP_W + TW_W;
     localparam int CMUL_SUM_GROWTH_W    = 1;
     localparam int MUL_OUT_W            = CMUL_TERM_W + CMUL_SUM_GROWTH_W;
@@ -31,24 +33,22 @@ module radix2_top_tb
     logic clk;
     logic rst;
 
-    logic signed [31:0] iq;
-    logic               valid_i;
-    logic               last_i;
-    logic        [31:0] iq_o;
-    logic signed [15:0] iq_o_im;
-    logic signed [15:0] iq_o_re;
-    logic               valid_o;
+    complex16_t iq;
+    logic       valid_i;
+    logic       last_i;
+    complex16_t iq_o;
+    logic       valid_o;
 
-    logic signed [31:0] stim_iq   [0:NUM_STIM-1];
-    logic               stim_valid[0:NUM_STIM-1];
-    logic               stim_last [0:NUM_STIM-1];
+    complex16_t stim_iq   [0:NUM_STIM-1];
+    logic       stim_valid[0:NUM_STIM-1];
+    logic       stim_last [0:NUM_STIM-1];
 
-    logic               exp_valid_pipe[0:PIPE_LAST];
-    logic signed [15:0] exp_re_pipe   [0:PIPE_LAST];
-    logic signed [15:0] exp_im_pipe   [0:PIPE_LAST];
+    logic            exp_valid_pipe[0:PIPE_LAST];
+    complex16_comp_t exp_re_pipe   [0:PIPE_LAST];
+    complex16_comp_t exp_im_pipe   [0:PIPE_LAST];
 
     int unsigned expected_addr_q;
-    logic signed [31:0] twiddle_ref;
+    complex16_t twiddle_ref;
     logic signed [MUL_OUT_W-1:0] mul_re_ref;
     logic signed [MUL_OUT_W-1:0] mul_im_ref;
     logic signed [ROUND_OWID-1:0] round_re_ref;
@@ -77,29 +77,17 @@ module radix2_top_tb
             );
     end
 
-    assign iq_o_im = $signed(iq_o[31:16]);
-    assign iq_o_re = $signed(iq_o[15:0]);
-
     radix2_top #(
         .FFT_N      (FFT_N)
     ) dut (
         .clk    (clk),
         .rst    (rst),
-        .iq     ($unsigned(iq)),
+        .iq     (iq),
         .valid_i(valid_i),
         .last_i (last_i),
         .iq_o   (iq_o),
         .valid_o(valid_o)
     );
-
-    function automatic logic signed [31:0] pack_complex(
-        input logic signed [15:0] im_in,
-        input logic signed [15:0] re_in
-    );
-        begin
-            pack_complex = $signed({im_in, re_in});
-        end
-    endfunction
 
     function automatic logic signed [TW_W-1:0] real_to_fixed_cast(input real x);
         int signed fixed_value;
@@ -109,7 +97,7 @@ module radix2_top_tb
     end
     endfunction
 
-    function automatic logic signed [31:0] twiddle_at_addr(
+    function automatic complex16_t twiddle_at_addr(
         input int unsigned addr
     );
         real angle;
@@ -120,54 +108,33 @@ module radix2_top_tb
         re_v  = $cos(angle);
         im_v  = -$sin(angle);
 
-        twiddle_at_addr = pack_complex(
-            real_to_fixed_cast(im_v),
-            real_to_fixed_cast(re_v)
-        );
+        twiddle_at_addr = radix2_types_pkg::comp_t_to_complex16(real_to_fixed_cast(re_v), real_to_fixed_cast(im_v));
     end
     endfunction
 
     function automatic logic signed [MUL_OUT_W-1:0] calc_expected_mul_re(
-        input logic signed [31:0] x_in,
-        input logic signed [31:0] y_in
+        input complex16_t x_in,
+        input complex16_t y_in
     );
-        logic signed [15:0] a_re;
-        logic signed [15:0] a_im;
-        logic signed [15:0] b_re;
-        logic signed [15:0] b_im;
         logic signed [MUL_OUT_W-1:0] p0;
         logic signed [MUL_OUT_W-1:0] p1;
     begin
-        a_im = $signed(x_in[31:16]);
-        a_re = $signed(x_in[15:0]);
-        b_im = $signed(y_in[31:16]);
-        b_re = $signed(y_in[15:0]);
-
-        p0 = a_re * b_re;
-        p1 = a_im * b_im;
+        p0 = x_in.re * y_in.re;
+        p1 = x_in.im * y_in.im;
 
         calc_expected_mul_re = $signed(p0) - $signed(p1);
     end
     endfunction
 
     function automatic logic signed [MUL_OUT_W-1:0] calc_expected_mul_im(
-        input logic signed [31:0] x_in,
-        input logic signed [31:0] y_in
+        input complex16_t x_in,
+        input complex16_t y_in
     );
-        logic signed [15:0] a_re;
-        logic signed [15:0] a_im;
-        logic signed [15:0] b_re;
-        logic signed [15:0] b_im;
         logic signed [MUL_OUT_W-1:0] p0;
         logic signed [MUL_OUT_W-1:0] p1;
     begin
-        a_im = $signed(x_in[31:16]);
-        a_re = $signed(x_in[15:0]);
-        b_im = $signed(y_in[31:16]);
-        b_re = $signed(y_in[15:0]);
-
-        p0 = a_re * b_im;
-        p1 = a_im * b_re;
+        p0 = x_in.re * y_in.im;
+        p1 = x_in.im * y_in.re;
 
         calc_expected_mul_im = $signed(p0) + $signed(p1);
     end
@@ -214,23 +181,23 @@ module radix2_top_tb
                 stim_last[i]  = 1'b0;
             end
 
-            stim_iq[0]    = pack_complex(16'sd10, 16'sd10);
+            stim_iq[0]    = radix2_types_pkg::comp_t_to_complex16(16'sd10, 16'sd10);
             stim_valid[0] = 1'b1;
 
-            stim_iq[1]    = pack_complex(16'sd10, 16'sd10);
+            stim_iq[1]    = radix2_types_pkg::comp_t_to_complex16(16'sd10, 16'sd10);
             stim_valid[1] = 1'b1;
 
-            stim_iq[3]    = pack_complex(16'sd10, 16'sd10);
+            stim_iq[3]    = radix2_types_pkg::comp_t_to_complex16(16'sd10, 16'sd10);
             stim_valid[3] = 1'b1;
 
-            stim_iq[4]    = pack_complex(16'sd10, 16'sd10);
+            stim_iq[4]    = radix2_types_pkg::comp_t_to_complex16(16'sd10, 16'sd10);
             stim_valid[4] = 1'b1;
             stim_last[4]  = 1'b1;
 
-            stim_iq[6]    = pack_complex(16'sd10, 16'sd10);
+            stim_iq[6]    = radix2_types_pkg::comp_t_to_complex16(16'sd10, 16'sd10);
             stim_valid[6] = 1'b1;
 
-            stim_iq[7]    = pack_complex(16'sd10, 16'sd10);
+            stim_iq[7]    = radix2_types_pkg::comp_t_to_complex16(16'sd10, 16'sd10);
             stim_valid[7] = 1'b1;
             stim_last[7]  = 1'b1;
         end
@@ -299,13 +266,13 @@ module radix2_top_tb
                     );
                 end else begin
                     outputs_seen = outputs_seen + 1;
-                    if ((iq_o_re !== exp_re_pipe[PIPE_LAST]) || (iq_o_im !== exp_im_pipe[PIPE_LAST])) begin
+                    if ((iq_o.re !== exp_re_pipe[PIPE_LAST]) || (iq_o.im !== exp_im_pipe[PIPE_LAST])) begin
                         fails_count = fails_count + 1;
                         $display(
                             "FAIL cycle=%0d: got(re=%0d im=%0d) exp(re=%0d im=%0d)",
                             cycle_count,
-                            $signed(iq_o_re),
-                            $signed(iq_o_im),
+                            $signed(iq_o.re),
+                            $signed(iq_o.im),
                             $signed(exp_re_pipe[PIPE_LAST]),
                             $signed(exp_im_pipe[PIPE_LAST])
                         );
@@ -313,8 +280,8 @@ module radix2_top_tb
                         $display(
                             "PASS cycle=%0d: re=%0d im=%0d",
                             cycle_count,
-                            $signed(iq_o_re),
-                            $signed(iq_o_im)
+                            $signed(iq_o.re),
+                            $signed(iq_o.im)
                         );
                     end
                 end
@@ -324,8 +291,8 @@ module radix2_top_tb
                 $display(
                     "FAIL cycle=%0d: unexpected valid_o with re=%0d im=%0d",
                     cycle_count,
-                    $signed(iq_o_re),
-                    $signed(iq_o_im)
+                    $signed(iq_o.re),
+                    $signed(iq_o.im)
                 );
             end
 

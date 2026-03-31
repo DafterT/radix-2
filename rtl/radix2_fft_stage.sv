@@ -1,18 +1,20 @@
 `timescale 1ns/1ps
 
+import radix2_types_pkg::*;
+
 module radix2_fft_stage #(
     parameter int FFT_N = 64
 ) (
-    input  logic        clk,
-    input  logic        rst,
-    input  logic        valid_i,
-    input  logic        last_i,
-    input  logic [31:0] a_i,    // [31:16] = a_im (Q16.0), [15:0] = a_re (Q16.0)
-    input  logic [31:0] b_i,    // [31:16] = b_im (Q16.0), [15:0] = b_re (Q16.0)
-    output logic        valid_o,
-    output logic        last_o,
-    output logic [65:0] a_o,    // [65:33] = im (Q19.14), [32:0] = re (Q19.14)
-    output logic [65:0] b_o     // [65:33] = im (Q19.14), [32:0] = re (Q19.14)
+    input  logic       clk,
+    input  logic       rst,
+    input  logic       valid_i,
+    input  logic       last_i,
+    input  complex16_t a_i,     // Q16.0
+    input  complex16_t b_i,     // Q16.0
+    output logic       valid_o,
+    output logic       last_o,
+    output complex34_t a_o,     // Q20.14
+    output complex34_t b_o      // Q20.14
 );
 
     initial begin
@@ -23,26 +25,26 @@ module radix2_fft_stage #(
             $fatal(1, "radix2_fft_stage: FFT_N must be power of two");
     end
 
-    localparam int TW_W              = 16;
-    localparam int TWIDDLE_PACK_W    = 2 * TW_W;
+    localparam int TW_W              = $bits(complex16_comp_t);
     localparam int DEPTH             = FFT_N / 2;
     localparam int ADDR_W            = (DEPTH > 1) ? $clog2(DEPTH) : 1;
+    localparam int AB_WIDTH          = 2 * $bits(complex16_t);
     localparam int INPUT_ALIGN_DEPTH = 1;
     localparam int LAST_ALIGN_DEPTH  = 6;
 
-    logic                      ab_aligned_vld;
-    logic [63:0]               ab_aligned;
-    logic [31:0]               a_aligned;
-    logic [31:0]               b_aligned;
-    logic [ADDR_W-1:0]         twiddle_addr;
-    logic [TWIDDLE_PACK_W-1:0] twiddle_w;
-    logic                      butterfly_valid_o;
-    logic [65:0]               butterfly_a_o;
-    logic [65:0]               butterfly_b_o;
-    logic                      last_aligned;
+    logic                ab_aligned_vld;
+    logic [AB_WIDTH-1:0] ab_aligned_data;
+    complex16_t          a_aligned;
+    complex16_t          b_aligned;
+    logic [ADDR_W-1:0]   twiddle_addr;
+    complex16_t          twiddle_w;
+    logic                butterfly_valid_o;
+    complex34_t          butterfly_a_o;
+    complex34_t          butterfly_b_o;
+    logic                last_aligned;
 
     shift_register_with_valid #(
-        .WIDTH(64),
+        .WIDTH(AB_WIDTH),
         .DEPTH(INPUT_ALIGN_DEPTH)
     ) u_ab_align (
         .clk     (clk),
@@ -50,11 +52,10 @@ module radix2_fft_stage #(
         .in_vld  (valid_i),
         .in_data ({a_i, b_i}),
         .out_vld (ab_aligned_vld),
-        .out_data(ab_aligned)
+        .out_data(ab_aligned_data)
     );
 
-    assign a_aligned = ab_aligned[63:32];
-    assign b_aligned = ab_aligned[31:0];
+    assign {a_aligned, b_aligned} = ab_aligned_data;
 
     radix2_cu #(
         .FFT_N(FFT_N)

@@ -7,6 +7,7 @@ ROOT_DIR := $(abspath $(THIS_DIR)/..)
 BUILD_DIR ?= $(THIS_DIR)/build
 INPUT_DIR ?= $(THIS_DIR)/input
 IVFLAGS_COMMON := -g2012 -Wall
+SV_PKG := $(ROOT_DIR)/rtl/radix2_types_pkg.sv
 
 # -----------------------------
 # DSP48E2_like_file_tb settings
@@ -157,7 +158,7 @@ stage: run-stage
 
 build-dsp:
 	mkdir -p $(BUILD_DIR)
-	$(IVERILOG) $(IVFLAGS_DSP) -o $(SIMV_DSP) $(TB_DSP) $(RTL_DSP)
+	$(IVERILOG) $(IVFLAGS_DSP) -o $(SIMV_DSP) $(SV_PKG) $(TB_DSP) $(RTL_DSP)
 
 run-dsp: build-dsp
 	$(VVP) $(SIMV_DSP) +infile=$(INFILE_DSP)
@@ -168,7 +169,7 @@ wave-dsp: build-dsp
 
 build-mul:
 	mkdir -p $(BUILD_DIR)
-	$(IVERILOG) $(IVFLAGS_MUL) -o $(SIMV_MUL) $(TB_MUL) $(RTL_MUL)
+	$(IVERILOG) $(IVFLAGS_MUL) -o $(SIMV_MUL) $(SV_PKG) $(TB_MUL) $(RTL_MUL)
 
 run-mul: build-mul
 	$(VVP) $(SIMV_MUL) +infile=$(INFILE_MUL)
@@ -179,7 +180,7 @@ wave-mul: build-mul
 
 build-round:
 	mkdir -p $(BUILD_DIR)
-	$(IVERILOG) $(IVFLAGS_ROUND) -o $(SIMV_ROUND) $(TB_ROUND) $(RTL_ROUND)
+	$(IVERILOG) $(IVFLAGS_ROUND) -o $(SIMV_ROUND) $(SV_PKG) $(TB_ROUND) $(RTL_ROUND)
 
 run-round: build-round
 	$(VVP) $(SIMV_ROUND)
@@ -190,7 +191,7 @@ wave-round: build-round
 
 build-clip:
 	mkdir -p $(BUILD_DIR)
-	$(IVERILOG) $(IVFLAGS_CLIP) -o $(SIMV_CLIP) $(TB_CLIP) $(RTL_CLIP)
+	$(IVERILOG) $(IVFLAGS_CLIP) -o $(SIMV_CLIP) $(SV_PKG) $(TB_CLIP) $(RTL_CLIP)
 
 run-clip: build-clip
 	$(VVP) $(SIMV_CLIP)
@@ -201,7 +202,7 @@ wave-clip: build-clip
 
 build-tw:
 	mkdir -p $(BUILD_DIR)
-	$(IVERILOG) $(IVFLAGS_TW) -o $(SIMV_TW) $(TB_TW) $(RTL_TW)
+	$(IVERILOG) $(IVFLAGS_TW) -o $(SIMV_TW) $(SV_PKG) $(TB_TW) $(RTL_TW)
 
 run-tw: build-tw
 	$(VVP) $(SIMV_TW)
@@ -212,7 +213,7 @@ wave-tw: build-tw
 
 build-radix2:
 	mkdir -p $(BUILD_DIR)
-	$(IVERILOG) $(IVFLAGS_RADIX2) -o $(SIMV_RADIX2) $(TB_RADIX2) $(RTL_RADIX2)
+	$(IVERILOG) $(IVFLAGS_RADIX2) -o $(SIMV_RADIX2) $(SV_PKG) $(TB_RADIX2) $(RTL_RADIX2)
 
 run-radix2: build-radix2
 	$(VVP) $(SIMV_RADIX2)
@@ -223,7 +224,7 @@ wave-radix2: build-radix2
 
 build-butterfly:
 	mkdir -p $(BUILD_DIR)
-	$(IVERILOG) $(IVFLAGS_BUTTERFLY) -o $(SIMV_BUTTERFLY) $(TB_BUTTERFLY) $(RTL_BUTTERFLY)
+	$(IVERILOG) $(IVFLAGS_BUTTERFLY) -o $(SIMV_BUTTERFLY) $(SV_PKG) $(TB_BUTTERFLY) $(RTL_BUTTERFLY)
 
 run-butterfly: build-butterfly
 	$(VVP) $(SIMV_BUTTERFLY)
@@ -234,7 +235,7 @@ wave-butterfly: build-butterfly
 
 build-stage:
 	mkdir -p $(BUILD_DIR)
-	$(IVERILOG) $(IVFLAGS_STAGE) -o $(SIMV_STAGE) $(TB_STAGE) $(RTL_STAGE)
+	$(IVERILOG) $(IVFLAGS_STAGE) -o $(SIMV_STAGE) $(SV_PKG) $(TB_STAGE) $(RTL_STAGE)
 
 run-stage: build-stage
 	$(VVP) $(SIMV_STAGE)

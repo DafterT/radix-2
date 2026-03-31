@@ -1,5 +1,7 @@
 `timescale 1ns/1ps
 
+import radix2_types_pkg::*;
+
 // Testbench for complex_mul_3dsp.
 // Потоковый режим: новый вектор X/Y подается каждый такт.
 // Проверка выхода выполняется с задержкой OUTPUT_OFFSET_CYCLES.
@@ -18,10 +20,9 @@ module complex_mul_3dsp_file_tb #(
     logic rst;
 
     // Интерфейс DUT.
-    logic [31:0] x;
-    logic [31:0] y;
-    logic signed [32:0] out_re;
-    logic signed [32:0] out_im;
+    complex16_t x;
+    complex16_t y;
+    complex33_t out;
 
     // Служебные переменные для чтения файла и статистики.
     integer file_desc;
@@ -32,87 +33,63 @@ module complex_mul_3dsp_file_tb #(
     // Буферы сырых/приведенных входных значений.
     logic [31:0] x_raw;
     logic [31:0] y_raw;
-    logic signed [31:0] x_vec;
-    logic signed [31:0] y_vec;
     reg [1023:0] skipped_line;
 
     // Pipeline ожидаемых результатов на OUTPUT_OFFSET_CYCLES стадий.
     // valid_pipe[i] показывает, что в стадии i есть валидный вектор.
     // id_pipe/x_pipe/y_pipe нужны для удобного PASS/FAIL лога.
-    // exp_re_pipe/exp_im_pipe хранят эталон для сравнения с выходом DUT.
+    // exp_out_pipe хранит эталон для сравнения с выходом DUT.
     logic                   valid_pipe [0:PIPE_LAST];
     integer                 id_pipe    [0:PIPE_LAST];
-    logic [31:0]            x_pipe     [0:PIPE_LAST];
-    logic [31:0]            y_pipe     [0:PIPE_LAST];
-    logic signed [32:0]     exp_re_pipe[0:PIPE_LAST];
-    logic signed [32:0]     exp_im_pipe[0:PIPE_LAST];
+    complex16_t             x_pipe     [0:PIPE_LAST];
+    complex16_t             y_pipe     [0:PIPE_LAST];
+    complex33_t             exp_out_pipe[0:PIPE_LAST];
 
     string input_file;
     string dumpfile;
 
-    // Эталонная действительная часть:
+    // Эталонный комплексный результат:
     // Re = ar*br - ai*bi
-    // Q16.0 * Q2.14 => Q19.14 (signed [32:0]).
-    function automatic logic signed [32:0] calc_expected_re(
-        input logic signed [31:0] x_in,
-        input logic signed [31:0] y_in
-    );
-        logic signed [15:0] a_re, a_im, b_re, b_im;
-        logic signed [32:0] p0, p1;
-        begin
-            a_im = $signed(x_in[31:16]);
-            a_re = $signed(x_in[15:0]);
-            b_im = $signed(y_in[31:16]);
-            b_re = $signed(y_in[15:0]);
-
-            p0 = a_re * b_re;
-            p1 = a_im * b_im;
-
-            calc_expected_re = $signed(p0) - $signed(p1);
-        end
-    endfunction
-
-    // Эталонная мнимая часть:
     // Im = ar*bi + ai*br
     // Q16.0 * Q2.14 => Q19.14 (signed [32:0]).
-    function automatic logic signed [32:0] calc_expected_im(
-        input logic signed [31:0] x_in,
-        input logic signed [31:0] y_in
+    function automatic complex33_t calc_expected_out(
+        input complex16_t x_in,
+        input complex16_t y_in
     );
-        logic signed [15:0] a_re, a_im, b_re, b_im;
-        logic signed [32:0] p0, p1;
+        complex33_comp_t p0, p1;
+        complex33_t      out_expected;
         begin
-            a_im = $signed(x_in[31:16]);
-            a_re = $signed(x_in[15:0]);
-            b_im = $signed(y_in[31:16]);
-            b_re = $signed(y_in[15:0]);
+            p0 = x_in.re * y_in.re;
+            p1 = x_in.im * y_in.im;
+            out_expected.re = $signed(p0) - $signed(p1);
 
-            p0 = a_re * b_im;
-            p1 = a_im * b_re;
+            p0 = x_in.re * y_in.im;
+            p1 = x_in.im * y_in.re;
+            out_expected.im = $signed(p0) + $signed(p1);
 
-            calc_expected_im = $signed(p0) + $signed(p1);
+            calc_expected_out = out_expected;
         end
     endfunction
 
-    function automatic logic signed [15:0] packed_re16(input logic [31:0] v);
+    function automatic complex16_comp_t packed_re16(input complex16_t v);
         begin
-            packed_re16 = $signed(v[15:0]);
+            packed_re16 = v.re;
         end
     endfunction
 
-    function automatic logic signed [15:0] packed_im16(input logic [31:0] v);
+    function automatic complex16_comp_t packed_im16(input complex16_t v);
         begin
-            packed_im16 = $signed(v[31:16]);
+            packed_im16 = v.im;
         end
     endfunction
 
-    function automatic real q2_14_to_real(input logic signed [15:0] v);
+    function automatic real q2_14_to_real(input complex16_comp_t v);
         begin
             q2_14_to_real = $itor(v) / (1 << 14);
         end
     endfunction
 
-    function automatic real q19_14_to_real(input logic signed [32:0] v);
+    function automatic real q19_14_to_real(input complex33_comp_t v);
         longint signed wide_v;
         begin
             wide_v = v;
@@ -122,10 +99,9 @@ module complex_mul_3dsp_file_tb #(
 
     task automatic print_pass_result(
         input int vec_id,
-        input logic [31:0] x_in,
-        input logic [31:0] y_in,
-        input logic signed [32:0] out_re_in,
-        input logic signed [32:0] out_im_in
+        input complex16_t x_in,
+        input complex16_t y_in,
+        input complex33_t out_in
     );
         begin
             $display("PASS vec=%0d", vec_id);
@@ -145,22 +121,20 @@ module complex_mul_3dsp_file_tb #(
             );
             $display(
                 "  out = %0d + j%0d    (Q19.14 => %0.6f + j%0.6f)",
-                out_re_in,
-                out_im_in,
-                q19_14_to_real(out_re_in),
-                q19_14_to_real(out_im_in)
+                out_in.re,
+                out_in.im,
+                q19_14_to_real(out_in.re),
+                q19_14_to_real(out_in.im)
             );
         end
     endtask
 
     task automatic print_fail_result(
         input int vec_id,
-        input logic [31:0] x_in,
-        input logic [31:0] y_in,
-        input logic signed [32:0] got_re_in,
-        input logic signed [32:0] got_im_in,
-        input logic signed [32:0] exp_re_in,
-        input logic signed [32:0] exp_im_in
+        input complex16_t x_in,
+        input complex16_t y_in,
+        input complex33_t got_in,
+        input complex33_t exp_in
     );
         begin
             $display("FAIL vec=%0d", vec_id);
@@ -180,25 +154,25 @@ module complex_mul_3dsp_file_tb #(
             );
             $display(
                 "  got  = %0d + j%0d    (Q19.14 => %0.6f + j%0.6f)",
-                got_re_in,
-                got_im_in,
-                q19_14_to_real(got_re_in),
-                q19_14_to_real(got_im_in)
+                got_in.re,
+                got_in.im,
+                q19_14_to_real(got_in.re),
+                q19_14_to_real(got_in.im)
             );
             $display(
                 "  exp  = %0d + j%0d    (Q19.14 => %0.6f + j%0.6f)",
-                exp_re_in,
-                exp_im_in,
-                q19_14_to_real(exp_re_in),
-                q19_14_to_real(exp_im_in)
+                exp_in.re,
+                exp_in.im,
+                q19_14_to_real(exp_in.re),
+                q19_14_to_real(exp_in.im)
             );
         end
     endtask
 
     // Загружает вход DUT на текущий такт.
     task automatic drive_vector(
-        input logic [31:0] x_in,
-        input logic [31:0] y_in
+        input complex16_t x_in,
+        input complex16_t y_in
     );
         begin
             x = x_in;
@@ -207,12 +181,11 @@ module complex_mul_3dsp_file_tb #(
     endtask
 
     complex_mul_3dsp dut (
-        .clk   (clk),
-        .rst   (rst),
-        .x     (x),
-        .y     (y),
-        .out_re(out_re),
-        .out_im(out_im)
+        .clk (clk),
+        .rst (rst),
+        .x   (x),
+        .y   (y),
+        .out (out)
     );
 
     // Генерация тактового сигнала.
@@ -260,8 +233,7 @@ module complex_mul_3dsp_file_tb #(
             id_pipe[i]     = 0;
             x_pipe[i]      = '0;
             y_pipe[i]      = '0;
-            exp_re_pipe[i] = '0;
-            exp_im_pipe[i] = '0;
+            exp_out_pipe[i] = '0;
         end
 
         if (!$value$plusargs("infile=%s", input_file))
@@ -286,24 +258,21 @@ module complex_mul_3dsp_file_tb #(
 
             // Шаг 1: проверяем текущий выход DUT против хвоста pipeline.
             if (valid_pipe[PIPE_LAST]) begin
-                if ((out_re !== exp_re_pipe[PIPE_LAST]) || (out_im !== exp_im_pipe[PIPE_LAST])) begin
+                if (out !== exp_out_pipe[PIPE_LAST]) begin
                     fails_count = fails_count + 1;
                     print_fail_result(
                         id_pipe[PIPE_LAST],
                         x_pipe[PIPE_LAST],
                         y_pipe[PIPE_LAST],
-                        out_re,
-                        out_im,
-                        exp_re_pipe[PIPE_LAST],
-                        exp_im_pipe[PIPE_LAST]
+                        out,
+                        exp_out_pipe[PIPE_LAST]
                     );
                 end else begin
                     print_pass_result(
                         id_pipe[PIPE_LAST],
                         x_pipe[PIPE_LAST],
                         y_pipe[PIPE_LAST],
-                        out_re,
-                        out_im
+                        out
                     );
                 end
             end
@@ -314,8 +283,7 @@ module complex_mul_3dsp_file_tb #(
                 id_pipe[i]     = id_pipe[i-1];
                 x_pipe[i]      = x_pipe[i-1];
                 y_pipe[i]      = y_pipe[i-1];
-                exp_re_pipe[i] = exp_re_pipe[i-1];
-                exp_im_pipe[i] = exp_im_pipe[i-1];
+                exp_out_pipe[i] = exp_out_pipe[i-1];
             end
 
             // Шаг 3: stage0 по умолчанию делаем пустым.
@@ -324,8 +292,7 @@ module complex_mul_3dsp_file_tb #(
             id_pipe[0]     = 0;
             x_pipe[0]      = '0;
             y_pipe[0]      = '0;
-            exp_re_pipe[0] = '0;
-            exp_im_pipe[0] = '0;
+            exp_out_pipe[0] = '0;
 
             if (!eof_reached) begin
                 // Шаг 4: читаем следующий валидный вектор из файла.
@@ -345,18 +312,18 @@ module complex_mul_3dsp_file_tb #(
 
                 if (got_vector) begin
                     // Шаг 5: подаем вектор в DUT и кладем эталон в stage0.
-                    x_vec = $signed(x_raw);
-                    y_vec = $signed(y_raw);
                     vectors_count = vectors_count + 1;
 
-                    drive_vector(x_raw, y_raw);
+                    drive_vector(
+                        radix2_types_pkg::bits_to_complex16(x_raw),
+                        radix2_types_pkg::bits_to_complex16(y_raw)
+                    );
 
                     valid_pipe[0]  = 1'b1;
                     id_pipe[0]     = vectors_count;
-                    x_pipe[0]      = x_raw;
-                    y_pipe[0]      = y_raw;
-                    exp_re_pipe[0] = calc_expected_re(x_vec, y_vec);
-                    exp_im_pipe[0] = calc_expected_im(x_vec, y_vec);
+                    x_pipe[0]      = radix2_types_pkg::bits_to_complex16(x_raw);
+                    y_pipe[0]      = radix2_types_pkg::bits_to_complex16(y_raw);
+                    exp_out_pipe[0] = calc_expected_out(x_pipe[0], y_pipe[0]);
                 end else begin
                     // Шаг 6: EOF достигнут, начинаем flush pipeline нулями.
                     eof_reached = 1'b1;

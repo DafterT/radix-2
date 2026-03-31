@@ -1,54 +1,47 @@
 `timescale 1ns/1ps
 
+import radix2_types_pkg::*;
+
 module complex_mul_3dsp (
-    input  logic               clk,
-    input  logic               rst,
-    input  logic        [31:0] x,       // [31:16] = a_im (Q16.0), [15:0] = a_re (Q16.0)
-    input  logic        [31:0] y,       // [31:16] = b_im (Q2.14), [15:0] = b_re (Q2.14)
-    output logic signed [32:0] out_re,  // Q19.14
-    output logic signed [32:0] out_im   // Q19.14
+    input  logic            clk,
+    input  logic            rst,
+    input  complex16_t      x,   // Q16.0
+    input  complex16_t      y,   // Q2.14
+    output complex33_t      out  // Q19.14
 );
 
-    logic signed [15:0] x_re, x_im;
-    logic signed [15:0] y_re, y_im;
-
-    localparam int X_COMP_W           = 16;
-    localparam int Y_COMP_W           = 16;
-    localparam int MUL_TERM_W         = X_COMP_W + Y_COMP_W;
-    localparam int CMUL_SUM_GROWTH_W  = 1;
-    localparam int OUT_W              = MUL_TERM_W + CMUL_SUM_GROWTH_W;
+    localparam int X_COMP_W          = $bits(complex16_comp_t);
+    localparam int Y_COMP_W          = $bits(complex16_comp_t);
+    localparam int MUL_TERM_W        = X_COMP_W + Y_COMP_W;
+    localparam int CMUL_SUM_GROWTH_W = 1;
+    localparam int OUT_W             = MUL_TERM_W + CMUL_SUM_GROWTH_W;
 
     logic signed [47:0] m0;
     logic signed [47:0] m1;
     logic signed [47:0] m2;
 
-    function automatic logic signed [29:0] sx30(input logic signed [15:0] v);
-        sx30 = $signed({{14{v[15]}}, v});
+    function automatic logic signed [29:0] sign_extend_to_30(input complex16_comp_t v);
+        sign_extend_to_30 = $signed({{14{v[15]}}, v});
     endfunction
 
-    function automatic logic signed [26:0] sx27(input logic signed [15:0] v);
-        sx27 = $signed({{11{v[15]}}, v});
+    function automatic logic signed [26:0] sign_extend_to_27(input complex16_comp_t v);
+        sign_extend_to_27 = $signed({{11{v[15]}}, v});
     endfunction
 
-    function automatic logic signed [17:0] sx18(input logic signed [15:0] v);
-        sx18 = $signed({{2{v[15]}}, v});
+    function automatic logic signed [17:0] sign_extend_to_18(input complex16_comp_t v);
+        sign_extend_to_18 = $signed({{2{v[15]}}, v});
     endfunction
-
-    assign x_im = $signed(x[31:16]);
-    assign x_re = $signed(x[15:0]);
-    assign y_im = $signed(y[31:16]);
-    assign y_re = $signed(y[15:0]);
 
     DSP48E2_like #(
         .PREADD_SUB (1'b0),
         .POSTADD_EN (1'b0),
         .POSTADD_SUB(1'b0)
-    ) dsp0 (
+    ) dsp1 (
         .clk(clk),
         .rst(rst),
-        .A  (sx30(y_im)), // To pread  b
-        .D  (sx27(y_re)), // To pread  B
-        .B  (sx18(x_re)), // Dualreg   A
+        .A  (sign_extend_to_30(y.im)), // To pread  b
+        .D  (sign_extend_to_27(y.re)), // To pread  B
+        .B  (sign_extend_to_18(x.re)), // Dualreg   A
         .C  ('0),
         .Y  (m0)
     );
@@ -57,13 +50,13 @@ module complex_mul_3dsp (
         .PREADD_SUB (1'b0),
         .POSTADD_EN (1'b1),
         .POSTADD_SUB(1'b1)
-    ) dsp1 (
+    ) dsp2 (
         .clk(clk),
         .rst(rst),
-        .A  (sx30(x_re)),   // To pread  A
-        .D  (sx27(x_im)),   // To pread  a
-        .B  (sx18(y_im)),  // Dualreg    b
-        .C  (m0),          // To Sum
+        .A  (sign_extend_to_30(x.re)), // To pread  A
+        .D  (sign_extend_to_27(x.im)), // To pread  a
+        .B  (sign_extend_to_18(y.im)), // Dualreg   b
+        .C  (m0),                      // To Sum
         .Y  (m1)
     );
 
@@ -71,17 +64,19 @@ module complex_mul_3dsp (
         .PREADD_SUB (1'b1),
         .POSTADD_EN (1'b1),
         .POSTADD_SUB(1'b0)
-    ) dsp2 (
+    ) dsp3 (
         .clk(clk),
         .rst(rst),
-        .A  (sx30(x_re)),  // To pread  A
-        .D  (sx27(x_im)),  // To pread  a
-        .B  (sx18(y_re)),  // Dualreg   B
-        .C  (m0),          // To Sum
+        .A  (sign_extend_to_30(x.re)), // To pread  A
+        .D  (sign_extend_to_27(x.im)), // To pread  a
+        .B  (sign_extend_to_18(y.re)), // Dualreg   B
+        .C  (m0),                      // To Sum
         .Y  (m2)
     );
 
-    assign out_re = $signed(m1[OUT_W-1:0]);
-    assign out_im = $signed(m2[OUT_W-1:0]);
+    assign out = radix2_types_pkg::comp_t_to_complex33(
+        $signed(m1[OUT_W-1:0]),
+        $signed(m2[OUT_W-1:0])
+    );
 
 endmodule

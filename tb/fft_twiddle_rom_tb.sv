@@ -1,5 +1,7 @@
 `timescale 1ns/1ps
 
+import radix2_types_pkg::*;
+
 module fft_twiddle_rom_tb #(
     parameter int FFT_N = 64,
     parameter int TW_W = 16,
@@ -12,14 +14,15 @@ module fft_twiddle_rom_tb #(
 
     logic clk;
     int unsigned addr_idx;
-    logic [2*TW_W-1:0] w;
-    logic [TW_W-1:0] w_re_raw;
-    logic [TW_W-1:0] w_im_raw;
-    logic signed [TW_W-1:0] w_re;
-    logic signed [TW_W-1:0] w_im;
+    complex16_t w;
 
     int idx;
     string dumpfile;
+
+    initial begin
+        if (TW_W != $bits(complex16_comp_t))
+            $fatal(1, "fft_twiddle_rom_tb: TW_W must be %0d when using complex16_t", $bits(complex16_comp_t));
+    end
 
     fft_twiddle_rom #(
         .FFT_N(FFT_N),
@@ -30,12 +33,7 @@ module fft_twiddle_rom_tb #(
         .w(w)
     );
 
-    assign w_re_raw = w[TW_W-1:0];
-    assign w_im_raw = w[2*TW_W-1:TW_W];
-    assign w_re     = $signed(w_re_raw);
-    assign w_im     = $signed(w_im_raw);
-
-    function automatic real fixed_to_real(input logic signed [TW_W-1:0] val);
+    function automatic real fixed_to_real(input complex16_comp_t val);
         begin
             fixed_to_real = $itor($signed(val)) / (1 << FRAC_BITS);
         end
@@ -75,10 +73,10 @@ module fft_twiddle_rom_tb #(
                 idx,
                 addr_idx,
                 w,
-                w_im,
-                fixed_to_real(w_im),
-                w_re,
-                fixed_to_real(w_re)
+                w.im,
+                fixed_to_real(w.im),
+                w.re,
+                fixed_to_real(w.re)
             );
         end
 
