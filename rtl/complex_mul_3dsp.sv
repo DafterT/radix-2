@@ -5,8 +5,8 @@ module complex_mul_3dsp (
     input  logic               rst,
     input  logic        [31:0] x,       // [31:16] = a_im (Q16.0), [15:0] = a_re (Q16.0)
     input  logic        [31:0] y,       // [31:16] = b_im (Q2.14), [15:0] = b_re (Q2.14)
-    output logic signed [32:0] out_re,  // Q19.14 = (16x16) product + 1 add/sub growth bit
-    output logic signed [32:0] out_im   // Q19.14 = (16x16) product + 1 add/sub growth bit
+    output logic signed [32:0] out_re,  // Q19.14
+    output logic signed [32:0] out_im   // Q19.14
 );
 
     logic signed [15:0] x_re, x_im;
@@ -21,14 +21,6 @@ module complex_mul_3dsp (
     logic signed [47:0] m0;
     logic signed [47:0] m1;
     logic signed [47:0] m2;
-
-    initial begin
-        if (($bits(x) != 2 * X_COMP_W) || ($bits(y) != 2 * Y_COMP_W))
-            $fatal(1, "complex_mul_3dsp: expected packed complex inputs with 16-bit components");
-
-        if (($bits(out_re) != OUT_W) || ($bits(out_im) != OUT_W))
-            $fatal(1, "complex_mul_3dsp: output width must be %0d bits", OUT_W);
-    end
 
     function automatic logic signed [29:0] sx30(input logic signed [15:0] v);
         sx30 = $signed({{14{v[15]}}, v});
