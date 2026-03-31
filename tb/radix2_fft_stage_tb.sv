@@ -19,8 +19,8 @@ module radix2_fft_stage_tb #(
     complex16_t b_i;
     logic       valid_o;
     logic       last_o;
-    complex34_t a_o;
-    complex34_t b_o;
+    complex16_t a_o;
+    complex16_t b_o;
 
     complex16_t stim_a    [0:NUM_STIM-1];
     complex16_t stim_b    [0:NUM_STIM-1];
@@ -39,16 +39,6 @@ module radix2_fft_stage_tb #(
     );
         begin
             q16_0_to_real = $itor(value_in);
-        end
-    endfunction
-
-    function automatic real q20_14_to_real(
-        input complex34_comp_t value_in
-    );
-        longint signed wide_value;
-        begin
-            wide_value = $signed({{30{value_in[33]}}, value_in});
-            q20_14_to_real = real'(wide_value) / (1 << 14);
         end
     endfunction
 
@@ -80,22 +70,22 @@ module radix2_fft_stage_tb #(
         input int         vec_idx,
         input logic       valid_in,
         input logic       last_in,
-        input complex34_t a_in,
-        input complex34_t b_in
+        input complex16_t a_in,
+        input complex16_t b_in
     );
         begin
             $display("OUT  idx=%0d valid=%0b last=%0b", vec_idx, valid_in, last_in);
             $display(
-                "  a_o = 0x%h  =>  %0.6f + j%0.6f  (Q20.14)",
+                "  a_o = 0x%08h  =>  %0.6f + j%0.6f  (Q16.0)",
                 a_in,
-                q20_14_to_real(a_in.re),
-                q20_14_to_real(a_in.im)
+                q16_0_to_real(a_in.re),
+                q16_0_to_real(a_in.im)
             );
             $display(
-                "  b_o = 0x%h  =>  %0.6f + j%0.6f  (Q20.14)",
+                "  b_o = 0x%08h  =>  %0.6f + j%0.6f  (Q16.0)",
                 b_in,
-                q20_14_to_real(b_in.re),
-                q20_14_to_real(b_in.im)
+                q16_0_to_real(b_in.re),
+                q16_0_to_real(b_in.im)
             );
         end
     endtask

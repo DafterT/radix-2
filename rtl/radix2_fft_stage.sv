@@ -13,8 +13,8 @@ module radix2_fft_stage #(
     input  complex16_t b_i,     // Q16.0
     output logic       valid_o,
     output logic       last_o,
-    output complex34_t a_o,     // Q20.14
-    output complex34_t b_o      // Q20.14
+    output complex16_t a_o,     // Q16.0
+    output complex16_t b_o      // Q16.0
 );
 
     initial begin
@@ -30,7 +30,8 @@ module radix2_fft_stage #(
     localparam int ADDR_W            = (DEPTH > 1) ? $clog2(DEPTH) : 1;
     localparam int AB_WIDTH          = 2 * $bits(complex16_t);
     localparam int INPUT_ALIGN_DEPTH = 1;
-    localparam int LAST_ALIGN_DEPTH  = 6;
+    localparam int BUTTERFLY_LATENCY = 8;
+    localparam int LAST_ALIGN_DEPTH  = INPUT_ALIGN_DEPTH + BUTTERFLY_LATENCY;
 
     logic                ab_aligned_vld;
     logic [AB_WIDTH-1:0] ab_aligned_data;
@@ -39,8 +40,8 @@ module radix2_fft_stage #(
     logic [ADDR_W-1:0]   twiddle_addr;
     complex16_t          twiddle_w;
     logic                butterfly_valid_o;
-    complex34_t          butterfly_a_o;
-    complex34_t          butterfly_b_o;
+    complex16_t          butterfly_a_o;
+    complex16_t          butterfly_b_o;
     logic                last_aligned;
 
     shift_register_with_valid #(
