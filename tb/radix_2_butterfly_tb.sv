@@ -18,8 +18,8 @@ module radix_2_butterfly_tb #(
     complex16_t b;
     complex16_t W;
     logic       valid_o;
-    complex34_t a_out;
-    complex34_t b_out;
+    complex16_t a_out;
+    complex16_t b_out;
 
     complex16_t stim_a [0:NUM_VECTORS-1];
     complex16_t stim_b [0:NUM_VECTORS-1];
@@ -44,16 +44,6 @@ module radix_2_butterfly_tb #(
     );
         begin
             q2_14_to_real = $itor(value_in) / (1 << 14);
-        end
-    endfunction
-
-    function automatic real q20_14_to_real(
-        input complex34_comp_t value_in
-    );
-        longint signed wide_value;
-        begin
-            wide_value = $signed({{30{value_in[33]}}, value_in});
-            q20_14_to_real = real'(wide_value) / (1 << 14);
         end
     endfunction
 
@@ -88,22 +78,22 @@ module radix_2_butterfly_tb #(
 
     task automatic print_output_vector(
         input int         vec_idx,
-        input complex34_t a_out_in,
-        input complex34_t b_out_in
+        input complex16_t a_out_in,
+        input complex16_t b_out_in
     );
         begin
             $display("OUT  idx=%0d", vec_idx);
             $display(
-                "  a_out = 0x%h  =>  %0.6f + j%0.6f  (Q20.14)",
+                "  a_out = 0x%08h  =>  %0.6f + j%0.6f  (Q16.0)",
                 a_out_in,
-                q20_14_to_real(a_out_in.re),
-                q20_14_to_real(a_out_in.im)
+                q16_0_to_real(a_out_in.re),
+                q16_0_to_real(a_out_in.im)
             );
             $display(
-                "  b_out = 0x%h  =>  %0.6f + j%0.6f  (Q20.14)",
+                "  b_out = 0x%08h  =>  %0.6f + j%0.6f  (Q16.0)",
                 b_out_in,
-                q20_14_to_real(b_out_in.re),
-                q20_14_to_real(b_out_in.im)
+                q16_0_to_real(b_out_in.re),
+                q16_0_to_real(b_out_in.im)
             );
         end
     endtask

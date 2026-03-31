@@ -10,18 +10,43 @@ module radix2_butterfly (
     input  complex16_t b,       // Q16.0
     input  complex16_t W,       // Q2.14
     output logic       valid_o,
-    output complex34_t a_out,   // Q20.14
-    output complex34_t b_out    // Q20.14
+    output complex16_t a_out,   // Q16.0
+    output complex16_t b_out    // Q16.0
 );
 
-    localparam int MUL_LATENCY_CYCLES = 4;
-    localparam int A_WIDTH            = $bits(complex16_t);
+    localparam int MUL_LATENCY_CYCLES  = 4;
+    localparam int A_WIDTH             = $bits(complex16_t);
+    localparam int DSP_PIPELINE_STAGES = 3;
+
+    // 1 / SQRT(2) in Q1.17
+    localparam real INV_SQRT2_REAL = 1.0 / $sqrt(2.0);
+    localparam logic signed [17:0] INV_SQRT2_Q1_17 = $rtoi(INV_SQRT2_REAL * (1 << 17));
 
     complex16_t         a_aligned;
     logic               a_aligned_vld;
     complex33_t         bw;
-    complex34_t         a_out_comb;
-    complex34_t         b_out_comb;
+    complex34_comp_t    a_re_q20_14;
+    complex34_comp_t    a_im_q20_14;
+    complex34_comp_t    bw_re_q20_14;
+    complex34_comp_t    bw_im_q20_14;
+    logic signed [26:0] a_re_dsp_in;
+    logic signed [26:0] a_im_dsp_in;
+    logic signed [26:0] bw_re_dsp_in;
+    logic signed [26:0] bw_im_dsp_in;
+    logic signed [29:0] bw_re_dsp_a;
+    logic signed [29:0] bw_im_dsp_a;
+    logic signed [47:0] a_out_re_dsp_raw;
+    logic signed [47:0] a_out_im_dsp_raw;
+    logic signed [47:0] b_out_re_dsp_raw;
+    logic signed [47:0] b_out_im_dsp_raw;
+    logic signed [44:0] a_out_re_q22_23;
+    logic signed [44:0] a_out_im_q22_23;
+    logic signed [44:0] b_out_re_q22_23;
+    logic signed [44:0] b_out_im_q22_23;
+    complex16_t         a_out_q16_0;
+    complex16_t         b_out_q16_0;
+    
+    logic [DSP_PIPELINE_STAGES-1:0] valid_pipe;
 
     function automatic complex34_comp_t q16_0_to_q20_14(
         input complex16_comp_t value_in
@@ -36,6 +61,23 @@ module radix2_butterfly (
     );
         begin
             q19_14_to_q20_14 = $signed({value_in[32], value_in});
+        end
+    endfunction
+
+    function automatic logic signed [26:0] q20_14_to_dsp_preadder(
+        input complex34_comp_t value_in
+    );
+        begin
+            // Q20.14 -> keep bits [33:8] => Q20.6, duplicate sign for preadder headroom.
+            q20_14_to_dsp_preadder = $signed({value_in[33], value_in[33:8]});
+        end
+    endfunction
+
+    function automatic logic signed [29:0] sign_extend_27_to_30(
+        input logic signed [26:0] value_in
+    );
+        begin
+            sign_extend_27_to_30 = $signed({{3{value_in[26]}}, value_in});
         end
     endfunction
 
@@ -59,23 +101,112 @@ module radix2_butterfly (
         .out(bw)
     );
 
-    assign a_out_comb.re = q16_0_to_q20_14(a_aligned.re) + q19_14_to_q20_14(bw.re);
-    assign a_out_comb.im = q16_0_to_q20_14(a_aligned.im) + q19_14_to_q20_14(bw.im);
-    assign b_out_comb.re = q16_0_to_q20_14(a_aligned.re) - q19_14_to_q20_14(bw.re);
-    assign b_out_comb.im = q16_0_to_q20_14(a_aligned.im) - q19_14_to_q20_14(bw.im);
+    assign a_re_q20_14  = q16_0_to_q20_14(a_aligned.re);
+    assign a_im_q20_14  = q16_0_to_q20_14(a_aligned.im);
+    assign bw_re_q20_14 = q19_14_to_q20_14(bw.re);
+    assign bw_im_q20_14 = q19_14_to_q20_14(bw.im);
+
+    assign a_re_dsp_in  = q20_14_to_dsp_preadder(a_re_q20_14);
+    assign a_im_dsp_in  = q20_14_to_dsp_preadder(a_im_q20_14);
+    assign bw_re_dsp_in = q20_14_to_dsp_preadder(bw_re_q20_14);
+    assign bw_im_dsp_in = q20_14_to_dsp_preadder(bw_im_q20_14);
+    
+    assign bw_re_dsp_a  = sign_extend_27_to_30(bw_re_dsp_in);
+    assign bw_im_dsp_a  = sign_extend_27_to_30(bw_im_dsp_in);
+
+    DSP48E2_like #(
+        .PREADD_SUB (1'b0),
+        .POSTADD_EN (1'b0),
+        .POSTADD_SUB(1'b0)
+    ) u_a_out_re_dsp (
+        .clk(clk),
+        .rst(rst),
+        .A  (bw_re_dsp_a),
+        .D  (a_re_dsp_in),
+        .B  (INV_SQRT2_Q1_17),
+        .C  (48'sd0),
+        .Y  (a_out_re_dsp_raw)
+    );
+
+    DSP48E2_like #(
+        .PREADD_SUB (1'b0),
+        .POSTADD_EN (1'b0),
+        .POSTADD_SUB(1'b0)
+    ) u_a_out_im_dsp (
+        .clk(clk),
+        .rst(rst),
+        .A  (bw_im_dsp_a),
+        .D  (a_im_dsp_in),
+        .B  (INV_SQRT2_Q1_17),
+        .C  (48'sd0),
+        .Y  (a_out_im_dsp_raw)
+    );
+
+    DSP48E2_like #(
+        .PREADD_SUB (1'b1),
+        .POSTADD_EN (1'b0),
+        .POSTADD_SUB(1'b0)
+    ) u_b_out_re_dsp (
+        .clk(clk),
+        .rst(rst),
+        .A  (bw_re_dsp_a),
+        .D  (a_re_dsp_in),
+        .B  (INV_SQRT2_Q1_17),
+        .C  (48'sd0),
+        .Y  (b_out_re_dsp_raw)
+    );
+
+    DSP48E2_like #(
+        .PREADD_SUB (1'b1),
+        .POSTADD_EN (1'b0),
+        .POSTADD_SUB(1'b0)
+    ) u_b_out_im_dsp (
+        .clk(clk),
+        .rst(rst),
+        .A  (bw_im_dsp_a),
+        .D  (a_im_dsp_in),
+        .B  (INV_SQRT2_Q1_17),
+        .C  (48'sd0),
+        .Y  (b_out_im_dsp_raw)
+    );
+
+    assign a_out_re_q22_23 = $signed(a_out_re_dsp_raw[44:0]);
+    assign a_out_im_q22_23 = $signed(a_out_im_dsp_raw[44:0]);
+    assign b_out_re_q22_23 = $signed(b_out_re_dsp_raw[44:0]);
+    assign b_out_im_q22_23 = $signed(b_out_im_dsp_raw[44:0]);
+
+    complex_round_clip_q22_23_to_q16_0 u_a_out_post (
+        .re_i(a_out_re_q22_23),
+        .im_i(a_out_im_q22_23),
+        .o_data(a_out_q16_0)
+    );
+
+    complex_round_clip_q22_23_to_q16_0 u_b_out_post (
+        .re_i(b_out_re_q22_23),
+        .im_i(b_out_im_q22_23),
+        .o_data(b_out_q16_0)
+    );
 
     always_ff @(posedge clk) begin
         if (rst) begin
-            valid_o <= 1'b0;
-            a_out   <= '0;
-            b_out   <= '0;
+            valid_pipe <= '0;
+            valid_o    <= 1'b0;
         end else begin
-            valid_o <= a_aligned_vld;
+            valid_pipe[0] <= a_aligned_vld;
+            for (int i = 1; i < DSP_PIPELINE_STAGES; i++)
+                valid_pipe[i] <= valid_pipe[i-1];
 
-            if (a_aligned_vld) begin
-                a_out <= a_out_comb;
-                b_out <= b_out_comb;
-            end
+            valid_o <= valid_pipe[DSP_PIPELINE_STAGES-1];
+        end
+    end
+
+    always_ff @(posedge clk) begin
+        if (rst) begin
+            a_out <= '0;
+            b_out <= '0;
+        end else if (valid_pipe[DSP_PIPELINE_STAGES-1]) begin
+            a_out <= a_out_q16_0;
+            b_out <= b_out_q16_0;
         end
     end
 

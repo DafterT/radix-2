@@ -109,8 +109,11 @@ IVFLAGS_RADIX2 += -P $(TOP_RADIX2).TW_W=$(TW_W)
 TOP_BUTTERFLY := radix_2_butterfly_tb
 TB_BUTTERFLY := $(THIS_DIR)/$(TOP_BUTTERFLY).sv
 RTL_BUTTERFLY := $(ROOT_DIR)/rtl/DSP48E2_like.sv \
+                 $(ROOT_DIR)/rtl/complex_round_clip_q22_23_to_q16_0.sv \
                  $(ROOT_DIR)/rtl/complex_mul_3dsp.sv \
+                 $(ROOT_DIR)/rtl/convergent_rounding.sv \
                  $(ROOT_DIR)/rtl/shift_register_with_valid.sv \
+                 $(ROOT_DIR)/rtl/symmetric_clip.sv \
                  $(ROOT_DIR)/rtl/radix2_butterfly.sv
 SIMV_BUTTERFLY := $(BUILD_DIR)/$(TOP_BUTTERFLY).vvp
 VCD_BUTTERFLY ?= $(BUILD_DIR)/$(TOP_BUTTERFLY).vcd
@@ -123,13 +126,16 @@ IVFLAGS_BUTTERFLY := $(IVFLAGS_COMMON)
 TOP_STAGE := radix2_fft_stage_tb
 TB_STAGE := $(THIS_DIR)/$(TOP_STAGE).sv
 RTL_STAGE := $(ROOT_DIR)/rtl/DSP48E2_like.sv \
+             $(ROOT_DIR)/rtl/complex_round_clip_q22_23_to_q16_0.sv \
              $(ROOT_DIR)/rtl/complex_mul_3dsp.sv \
+             $(ROOT_DIR)/rtl/convergent_rounding.sv \
              $(ROOT_DIR)/rtl/fft_twiddle_rom.sv \
              $(ROOT_DIR)/rtl/radix2_butterfly.sv \
              $(ROOT_DIR)/rtl/radix2_cu.sv \
              $(ROOT_DIR)/rtl/radix2_fft_stage.sv \
              $(ROOT_DIR)/rtl/shift_register.sv \
-             $(ROOT_DIR)/rtl/shift_register_with_valid.sv
+             $(ROOT_DIR)/rtl/shift_register_with_valid.sv \
+             $(ROOT_DIR)/rtl/symmetric_clip.sv
 SIMV_STAGE := $(BUILD_DIR)/$(TOP_STAGE).vvp
 VCD_STAGE ?= $(BUILD_DIR)/$(TOP_STAGE).vcd
 
