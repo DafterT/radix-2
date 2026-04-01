@@ -6,8 +6,8 @@
 #define WHITE_NOISE_BACKOFF_DB 20.0
 #endif
 
-#include "radix2_fft_stage_model.h"
-#include "radix2_fft_stage_model_double.h"
+#include "../fixed/radix2_fft_stage_model.h"
+#include "../reference/radix2_fft_stage_model_double.h"
 
 #include <math.h>
 #include <stdint.h>
