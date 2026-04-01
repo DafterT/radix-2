@@ -11,8 +11,9 @@ FFT_EXE := $(BUILD_DIR)/fft$(EXE_EXT)
 STAGE_FIXED_EXE := $(BUILD_DIR)/stage_fixed$(EXE_EXT)
 STAGE_DOUBLE_EXE := $(BUILD_DIR)/stage_double$(EXE_EXT)
 STAGE_COMPARE_EXE := $(BUILD_DIR)/stage_compare$(EXE_EXT)
+STAGE_COMPARE_LOG := $(BUILD_DIR)/stage_compare.log
 
-.PHONY: all mul fft stage_fixed stage_double stage_compare print_twiddle
+.PHONY: all mul fft stage_fixed stage_double stage_compare print_twiddle clean
 
 all: mul fft stage_fixed stage_double stage_compare print_twiddle
 
@@ -49,7 +50,10 @@ stage_compare:
 		stage/fixed/fft_stage_model_fixed.c \
 		stage/reference/fft_stage_model_double.c \
 		-o $(STAGE_COMPARE_EXE) $(LDLIBS)
-	$(STAGE_COMPARE_EXE)
+	$(STAGE_COMPARE_EXE) | tee $(STAGE_COMPARE_LOG)
 
 print_twiddle:
 	printf '%s\n' "$(TWIDDLE_N)" | $(PYTHON) tools/print_twiddle_rom_data.py
+
+clean:
+	rm -rf $(BUILD_DIR)
