@@ -1,14 +1,8 @@
 #ifndef RADIX2_FFT_STAGE_MODEL_DOUBLE_H
 #define RADIX2_FFT_STAGE_MODEL_DOUBLE_H
 
-#include <stdint.h>
-
 #ifndef FFT_N
 #define FFT_N 64
-#endif
-
-#ifndef WHITE_NOISE_BACKOFF_DB
-#define WHITE_NOISE_BACKOFF_DB 6.0
 #endif
 
 #define DOUBLE_STAGE_TWIDDLE_COUNT (FFT_N / 2)
@@ -25,23 +19,21 @@ typedef struct {
 } double_stage_output_t;
 
 typedef struct {
-    int initialized;
     int twiddle_index;
-    double_stage_cpx_t twiddles[DOUBLE_STAGE_TWIDDLE_COUNT];
 } double_stage_model_t;
 
-/* ===== Core model API ===== */
-
-void double_stage_init(double_stage_model_t *model);
+/*
+ * Выполняет один шаг double-модели FFT stage.
+ * Принимает два входных отсчёта `a_i` и `b_i`,
+ * использует текущий twiddle из состояния `model`,
+ * возвращает выходы stage в double и пробрасывает `last_i` в `last`.
+ * Если `last_i != 0`, индекс twiddle сбрасывается для следующего вызова.
+ */
 double_stage_output_t double_stage_step(
     double_stage_model_t *model,
-    int last_i,
     double_stage_cpx_t a_i,
-    double_stage_cpx_t b_i
+    double_stage_cpx_t b_i,
+    int last_i
 );
-
-/* ===== Demo / test helpers ===== */
-
-void double_stage_run_demo(void);
 
 #endif

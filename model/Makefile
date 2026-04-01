@@ -1,87 +1,55 @@
 CC ?= gcc
+PYTHON ?= python3
 CFLAGS ?= -std=c11 -Wall -Wextra -O3
-CPPFLAGS ?=
 LDLIBS ?= -lm
 BUILD_DIR := build
-BUILD_DIR_TARGET := $(BUILD_DIR)/
 EXE_EXT := $(if $(filter Windows_NT,$(OS)),.exe,)
+TWIDDLE_N ?= 64
 
-CMUL_DIR := complex_mul_3dsp
-FFT64_DIR := fft64
-STAGE_FIXED_DIR := stage/fixed
-STAGE_REFERENCE_DIR := stage/reference
-STAGE_TOOLS_DIR := stage/tools
-STAGE_INCLUDE_FLAGS := -I$(STAGE_FIXED_DIR) -I$(STAGE_REFERENCE_DIR)
+MUL_EXE := $(BUILD_DIR)/mul$(EXE_EXT)
+FFT_EXE := $(BUILD_DIR)/fft$(EXE_EXT)
+STAGE_FIXED_EXE := $(BUILD_DIR)/stage_fixed$(EXE_EXT)
+STAGE_DOUBLE_EXE := $(BUILD_DIR)/stage_double$(EXE_EXT)
+STAGE_COMPARE_EXE := $(BUILD_DIR)/stage_compare$(EXE_EXT)
 
-TARGET_NAME ?= complex_mul_3dsp_test
-TARGET := $(BUILD_DIR)/$(TARGET_NAME)$(EXE_EXT)
-CMUL_SRC := $(CMUL_DIR)/complex_mul_3dsp_test.c
-FFT64_TARGET_NAME := radix2_fft64_model
-FFT64_SRC := $(FFT64_DIR)/radix2_fft64_model.c
-FFT64_TARGET := $(BUILD_DIR)/$(FFT64_TARGET_NAME)$(EXE_EXT)
-FFT_STAGE_TARGET_NAME := fixed_stage
-FFT_STAGE_MODEL_SRC := $(STAGE_FIXED_DIR)/radix2_fft_stage_model.c
-FFT_STAGE_MAIN_SRC := $(STAGE_FIXED_DIR)/fixed_main.c
-FFT_STAGE_TARGET := $(BUILD_DIR)/$(FFT_STAGE_TARGET_NAME)$(EXE_EXT)
-FFT_STAGE_DOUBLE_TARGET_NAME := radix2_fft_stage_model_double
-FFT_STAGE_DOUBLE_SRC := $(STAGE_REFERENCE_DIR)/radix2_fft_stage_model_double.c
-FFT_STAGE_DOUBLE_TARGET := $(BUILD_DIR)/$(FFT_STAGE_DOUBLE_TARGET_NAME)$(EXE_EXT)
-FFT_STAGE_COMPARE_TARGET_NAME := radix2_fft_stage_compare
-FFT_STAGE_COMPARE_SRC := $(STAGE_TOOLS_DIR)/radix2_fft_stage_compare.c
-FFT_STAGE_COMPARE_TARGET := $(BUILD_DIR)/$(FFT_STAGE_COMPARE_TARGET_NAME)$(EXE_EXT)
-FFT_STAGE_COMPARE_CPPFLAGS := -DFIXED_STAGE_MODEL_NO_MAIN -DDOUBLE_STAGE_MODEL_NO_MAIN
+.PHONY: all mul fft stage_fixed stage_double stage_compare print_twiddle
 
-.PHONY: all build run build-fft64 run-fft64 build-stage run-stage build-stage-double run-stage-double build-stage-compare run-stage-compare clean
+all: mul fft stage_fixed stage_double stage_compare print_twiddle
 
-all: build
-
-build: $(TARGET)
-
-build-fft64: $(FFT64_TARGET)
-
-build-stage: $(FFT_STAGE_TARGET)
-
-build-stage-double: $(FFT_STAGE_DOUBLE_TARGET)
-
-build-stage-compare: $(FFT_STAGE_COMPARE_TARGET)
-
-$(BUILD_DIR_TARGET):
+mul:
 	mkdir -p $(BUILD_DIR)
+	$(CC) $(CFLAGS) complex_mul_3dsp/complex_mul_3dsp_test.c -o $(MUL_EXE) $(LDLIBS)
+	$(MUL_EXE)
 
-$(TARGET): $(CMUL_SRC) | $(BUILD_DIR_TARGET)
-	$(CC) $(CPPFLAGS) $(CFLAGS) $< -o $@ $(LDLIBS)
+fft:
+	mkdir -p $(BUILD_DIR)
+	$(CC) $(CFLAGS) fft64/radix2_fft64_model.c -o $(FFT_EXE) $(LDLIBS)
+	$(FFT_EXE)
 
-$(FFT64_TARGET): $(FFT64_SRC) | $(BUILD_DIR_TARGET)
-	$(CC) $(CPPFLAGS) $(CFLAGS) $< -o $@ $(LDLIBS)
+stage_fixed:
+	mkdir -p $(BUILD_DIR)
+	$(CC) $(CFLAGS) -Istage/fixed -Istage/reference \
+		stage/fixed/radix2_fft_stage_model.c \
+		stage/fixed/fixed_main.c \
+		-o $(STAGE_FIXED_EXE) $(LDLIBS)
+	$(STAGE_FIXED_EXE)
 
-$(FFT_STAGE_TARGET): $(FFT_STAGE_MODEL_SRC) $(FFT_STAGE_MAIN_SRC) | $(BUILD_DIR_TARGET)
-	$(CC) $(CPPFLAGS) $(STAGE_INCLUDE_FLAGS) $(CFLAGS) $(FFT_STAGE_MODEL_SRC) $(FFT_STAGE_MAIN_SRC) -o $@ $(LDLIBS)
+stage_double:
+	mkdir -p $(BUILD_DIR)
+	$(CC) $(CFLAGS) -Istage/reference \
+		stage/reference/radix2_fft_stage_model_double.c \
+		stage/reference/double_main.c \
+		-o $(STAGE_DOUBLE_EXE) $(LDLIBS)
+	$(STAGE_DOUBLE_EXE)
 
-$(FFT_STAGE_DOUBLE_TARGET): $(FFT_STAGE_DOUBLE_SRC) | $(BUILD_DIR_TARGET)
-	$(CC) $(CPPFLAGS) $(CFLAGS) $< -o $@ $(LDLIBS)
+stage_compare:
+	mkdir -p $(BUILD_DIR)
+	$(CC) $(CFLAGS) -Istage/fixed -Istage/reference \
+		stage/tools/radix2_fft_stage_compare.c \
+		stage/fixed/radix2_fft_stage_model.c \
+		stage/reference/radix2_fft_stage_model_double.c \
+		-o $(STAGE_COMPARE_EXE) $(LDLIBS)
+	$(STAGE_COMPARE_EXE)
 
-$(FFT_STAGE_COMPARE_TARGET): $(FFT_STAGE_COMPARE_SRC) $(FFT_STAGE_MODEL_SRC) $(FFT_STAGE_DOUBLE_SRC) | $(BUILD_DIR_TARGET)
-	$(CC) $(CPPFLAGS) $(STAGE_INCLUDE_FLAGS) $(CFLAGS) $(FFT_STAGE_COMPARE_CPPFLAGS) $(FFT_STAGE_COMPARE_SRC) $(FFT_STAGE_MODEL_SRC) $(FFT_STAGE_DOUBLE_SRC) -o $@ $(LDLIBS)
-
-run: build
-	$(TARGET)
-
-run-fft64: build-fft64
-	$(FFT64_TARGET)
-
-run-stage: build-stage
-	$(FFT_STAGE_TARGET)
-
-run-stage-double: build-stage-double
-	$(FFT_STAGE_DOUBLE_TARGET)
-
-run-stage-compare: build-stage-compare
-	$(FFT_STAGE_COMPARE_TARGET)
-
-clean:
-	$(RM) $(TARGET)
-	$(RM) $(FFT64_TARGET)
-	$(RM) $(FFT_STAGE_TARGET)
-	$(RM) $(FFT_STAGE_DOUBLE_TARGET)
-	$(RM) $(FFT_STAGE_COMPARE_TARGET)
-	$(RM) -r $(BUILD_DIR)
+print_twiddle:
+	printf '%s\n' "$(TWIDDLE_N)" | $(PYTHON) tools/print_twiddle_rom_data.py
