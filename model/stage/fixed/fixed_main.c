@@ -1,7 +1,9 @@
 #include "radix2_fft_stage_model.h"
 
-#include <stddef.h>
+#include <stdlib.h>
 #include <stdio.h>
+
+#define FIXED_STAGE_STIM_FILE "../tb/input/fixed_stage_stim.txt"
 
 typedef struct {
     int valid;
@@ -10,48 +12,46 @@ typedef struct {
     fixed_stage_cpx_q16_0_t b;
 } fixed_stage_stim_t;
 
-static const fixed_stage_stim_t g_stage_tb_stim[] = {
-    {
-        .valid = 1,
-        .last = 0,
-        .a = { .re = 10, .im = 2 },
-        .b = { .re = 3, .im = 4 }
-    },
-    {
-        .valid = 1,
-        .last = 0,
-        .a = { .re = 7, .im = -3 },
-        .b = { .re = -2, .im = 1 }
-    },
-    {
-        .valid = 1,
-        .last = 1,
-        .a = { .re = -8, .im = 5 },
-        .b = { .re = 2, .im = -6 }
-    },
-    {
-        .valid = 0,
-        .last = 0,
-        .a = { .re = 0, .im = 0 },
-        .b = { .re = 0, .im = 0 }
-    },
-    {
-        .valid = 1,
-        .last = 0,
-        .a = { .re = -1, .im = -1 },
-        .b = { .re = 2, .im = 2 }
-    },
-    {
-        .valid = 1,
-        .last = 1,
-        .a = { .re = 4, .im = 1 },
-        .b = { .re = 1, .im = -3 }
-    }
-};
+static int fixed_stage_read_stim(FILE *stim_file, fixed_stage_stim_t *stim) {
+    char line[256];
 
-int main(void) {
+    while (fgets(line, sizeof(line), stim_file) != NULL) {
+        int valid;
+        int last;
+        int a_re;
+        int a_im;
+        int b_re;
+        int b_im;
+
+        if (sscanf(line, "%d %d %d %d %d %d", &valid, &last, &a_re, &a_im, &b_re, &b_im) != 6) {
+            continue;
+        }
+
+        stim->valid = valid;
+        stim->last = last;
+        stim->a.re = (int16_t)a_re;
+        stim->a.im = (int16_t)a_im;
+        stim->b.re = (int16_t)b_re;
+        stim->b.im = (int16_t)b_im;
+        return 1;
+    }
+
+    return 0;
+}
+
+int main(int argc, char **argv) {
+    const char *stim_path = FIXED_STAGE_STIM_FILE;
     fixed_stage_model_t model = {0};
-    size_t stim_count = sizeof(g_stage_tb_stim) / sizeof(g_stage_tb_stim[0]);
+
+    if (argc > 1) {
+        stim_path = argv[1];
+    }
+
+    FILE *stim_file = fopen(stim_path, "r");
+    if (stim_file == NULL) {
+        fprintf(stderr, "Failed to open stimulus file: %s\n", stim_path);
+        return EXIT_FAILURE;
+    }
 
     printf(
         " idx | valid | last |   a.re |   a.im |   b.re |   b.im | status | out.last | a_o.re | a_o.im | b_o.re | b_o.im\n"
@@ -60,19 +60,23 @@ int main(void) {
         "-----+-------+------+--------+--------+--------+--------+--------+----------+--------+--------+--------+--------\n"
     );
 
-    for (size_t i = 0; i < stim_count; ++i) {
-        const fixed_stage_stim_t *stim = &g_stage_tb_stim[i];
+    for (size_t i = 0;; ++i) {
+        fixed_stage_stim_t stim;
 
-        if (!stim->valid) {
+        if (!fixed_stage_read_stim(stim_file, &stim)) {
+            break;
+        }
+
+        if (!stim.valid) {
             printf(
                 "%4zu | %5d | %4d | %6d | %6d | %6d | %6d | %-6s | %8s | %6s | %6s | %6s | %6s\n",
                 i,
-                stim->valid,
-                stim->last,
-                stim->a.re,
-                stim->a.im,
-                stim->b.re,
-                stim->b.im,
+                stim.valid,
+                stim.last,
+                stim.a.re,
+                stim.a.im,
+                stim.b.re,
+                stim.b.im,
                 "SKIP",
                 "-",
                 "-",
@@ -83,17 +87,17 @@ int main(void) {
             continue;
         }
 
-        fixed_stage_output_t out = fixed_stage_step(&model, stim->a, stim->b, stim->last);
+        fixed_stage_output_t out = fixed_stage_step(&model, stim.a, stim.b, stim.last);
 
         printf(
             "%4zu | %5d | %4d | %6d | %6d | %6d | %6d | %-6s | %8d | %6d | %6d | %6d | %6d\n",
             i,
-            stim->valid,
-            stim->last,
-            stim->a.re,
-            stim->a.im,
-            stim->b.re,
-            stim->b.im,
+            stim.valid,
+            stim.last,
+            stim.a.re,
+            stim.a.im,
+            stim.b.re,
+            stim.b.im,
             "RUN",
             out.last,
             out.a.re,
@@ -103,5 +107,6 @@ int main(void) {
         );
     }
 
+    fclose(stim_file);
     return 0;
 }

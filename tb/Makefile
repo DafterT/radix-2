@@ -138,6 +138,7 @@ RTL_STAGE := $(ROOT_DIR)/rtl/DSP48E2_like.sv \
              $(ROOT_DIR)/rtl/symmetric_clip.sv
 SIMV_STAGE := $(BUILD_DIR)/$(TOP_STAGE).vvp
 VCD_STAGE ?= $(BUILD_DIR)/$(TOP_STAGE).vcd
+INFILE_STAGE ?= $(INPUT_DIR)/fixed_stage_stim.txt
 
 IVFLAGS_STAGE := $(IVFLAGS_COMMON)
 IVFLAGS_STAGE += -P $(TOP_STAGE).FFT_N=$(FFT_N)
@@ -244,10 +245,10 @@ build-stage:
 	$(IVERILOG) $(IVFLAGS_STAGE) -o $(SIMV_STAGE) $(SV_PKG) $(TB_STAGE) $(RTL_STAGE)
 
 run-stage: build-stage
-	$(VVP) $(SIMV_STAGE)
+	$(VVP) $(SIMV_STAGE) +infile=$(INFILE_STAGE)
 
 wave-stage: build-stage
-	$(VVP) $(SIMV_STAGE) +dump +dumpfile=$(VCD_STAGE)
+	$(VVP) $(SIMV_STAGE) +infile=$(INFILE_STAGE) +dump +dumpfile=$(VCD_STAGE)
 	@echo "VCD generated: $(VCD_STAGE)"
 
 run-all: run-dsp run-mul run-round run-clip run-tw run-radix2 run-butterfly run-stage

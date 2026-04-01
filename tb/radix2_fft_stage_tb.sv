@@ -6,7 +6,7 @@ module radix2_fft_stage_tb #(
     parameter int FFT_N         = 64,
     parameter int RESET_CYCLES  = 4,
     parameter int CLK_PERIOD_NS = 10,
-    parameter int NUM_STIM      = 6
+    parameter int MAX_STIM      = 1024
 );
 
     localparam int HALF_CLK_PERIOD_NS = CLK_PERIOD_NS / 2;
@@ -22,17 +22,19 @@ module radix2_fft_stage_tb #(
     complex16_t a_o;
     complex16_t b_o;
 
-    complex16_t stim_a    [0:NUM_STIM-1];
-    complex16_t stim_b    [0:NUM_STIM-1];
-    logic       stim_valid[0:NUM_STIM-1];
-    logic       stim_last [0:NUM_STIM-1];
+    complex16_t stim_a    [0:MAX_STIM-1];
+    complex16_t stim_b    [0:MAX_STIM-1];
+    logic       stim_valid[0:MAX_STIM-1];
+    logic       stim_last [0:MAX_STIM-1];
 
     int stim_idx;
+    int num_stim;
     int inputs_seen;
     int outputs_seen;
     int i;
 
     string dumpfile;
+    string input_file;
 
     function automatic integer q16_0_to_int(
         input complex16_comp_t value_in
@@ -90,41 +92,72 @@ module radix2_fft_stage_tb #(
         end
     endtask
 
-    task automatic init_stimulus;
+    task automatic load_stimulus_from_file;
+        int file_desc;
+        int line_status;
+        int scan_status;
+        int valid_raw;
+        int last_raw;
+        int a_re_raw;
+        int a_im_raw;
+        int b_re_raw;
+        int b_im_raw;
+        reg [8*256-1:0] line;
         begin
-            for (i = 0; i < NUM_STIM; i++) begin
+            for (i = 0; i < MAX_STIM; i++) begin
                 stim_a[i]     = '0;
                 stim_b[i]     = '0;
                 stim_valid[i] = 1'b0;
                 stim_last[i]  = 1'b0;
             end
 
-            // Edit stimulus here.
-            stim_a[0]     = radix2_types_pkg::comp_t_to_complex16(16'sd10, 16'sd2);
-            stim_b[0]     = radix2_types_pkg::comp_t_to_complex16(16'sd3, 16'sd4);
-            stim_valid[0] = 1'b1;
+            num_stim = 0;
 
-            stim_a[1]     = radix2_types_pkg::comp_t_to_complex16(16'sd7, -16'sd3);
-            stim_b[1]     = radix2_types_pkg::comp_t_to_complex16(-16'sd2, 16'sd1);
-            stim_valid[1] = 1'b1;
+            if (!$value$plusargs("infile=%s", input_file))
+                input_file = "input/fixed_stage_stim.txt";
 
-            stim_a[2]     = radix2_types_pkg::comp_t_to_complex16(-16'sd8, 16'sd5);
-            stim_b[2]     = radix2_types_pkg::comp_t_to_complex16(16'sd2, -16'sd6);
-            stim_valid[2] = 1'b1;
-            stim_last[2]  = 1'b1;
+            file_desc = $fopen(input_file, "r");
+            if (file_desc == 0)
+                $fatal(1, "Failed to open stage stimulus file: %0s", input_file);
 
-            stim_a[3]     = radix2_types_pkg::comp_t_to_complex16(16'sd0, 16'sd0);
-            stim_b[3]     = radix2_types_pkg::comp_t_to_complex16(16'sd0, 16'sd0);
-            stim_valid[3] = 1'b0;
+            while (!$feof(file_desc)) begin
+                line = "";
+                line_status = $fgets(line, file_desc);
+                if (line_status != 0) begin
+                    scan_status = $sscanf(
+                        line,
+                        "%d %d %d %d %d %d",
+                        valid_raw,
+                        last_raw,
+                        a_re_raw,
+                        a_im_raw,
+                        b_re_raw,
+                        b_im_raw
+                    );
 
-            stim_a[4]     = radix2_types_pkg::comp_t_to_complex16(-16'sd1, -16'sd1);
-            stim_b[4]     = radix2_types_pkg::comp_t_to_complex16(16'sd2, 16'sd2);
-            stim_valid[4] = 1'b1;
+                    if (scan_status == 6) begin
+                        if (num_stim >= MAX_STIM)
+                            $fatal(1, "Too many stage stimulus vectors in %0s", input_file);
 
-            stim_a[5]     = radix2_types_pkg::comp_t_to_complex16(16'sd4, 16'sd1);
-            stim_b[5]     = radix2_types_pkg::comp_t_to_complex16(16'sd1, -16'sd3);
-            stim_valid[5] = 1'b1;
-            stim_last[5]  = 1'b1;
+                        stim_a[num_stim] = radix2_types_pkg::comp_t_to_complex16(
+                            complex16_comp_t'(a_re_raw),
+                            complex16_comp_t'(a_im_raw)
+                        );
+                        stim_b[num_stim] = radix2_types_pkg::comp_t_to_complex16(
+                            complex16_comp_t'(b_re_raw),
+                            complex16_comp_t'(b_im_raw)
+                        );
+                        stim_valid[num_stim] = (valid_raw != 0);
+                        stim_last[num_stim]  = (last_raw != 0);
+                        num_stim = num_stim + 1;
+                    end
+                end
+            end
+
+            $fclose(file_desc);
+
+            if (num_stim == 0)
+                $fatal(1, "No stage stimulus vectors loaded from %0s", input_file);
         end
     endtask
 
@@ -164,15 +197,16 @@ module radix2_fft_stage_tb #(
         a_i          <= '0;
         b_i          <= '0;
         stim_idx     = 0;
+        num_stim     = 0;
         inputs_seen  = 0;
         outputs_seen = 0;
 
-        init_stimulus();
+        load_stimulus_from_file();
 
         repeat (RESET_CYCLES) @(posedge clk);
         rst <= 1'b0;
 
-        while ((stim_idx < NUM_STIM) || (outputs_seen < inputs_seen)) begin
+        while ((stim_idx < num_stim) || (outputs_seen < inputs_seen)) begin
             @(posedge clk);
 
             if (valid_o) begin
@@ -180,7 +214,7 @@ module radix2_fft_stage_tb #(
                 print_output_vector(outputs_seen, valid_o, last_o, a_o, b_o);
             end
 
-            if (stim_idx < NUM_STIM) begin
+            if (stim_idx < num_stim) begin
                 valid_i <= stim_valid[stim_idx];
                 last_i  <= stim_last[stim_idx];
                 a_i     <= stim_a[stim_idx];
