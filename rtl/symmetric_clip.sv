@@ -12,9 +12,9 @@ module symmetric_clip
 
     initial begin
         if (IWID <= OWID)
-            $error("[symmetric_clip]: IWID must be greater than OWID");
+            $fatal(1, "[symmetric_clip]: IWID must be greater than OWID");
         if (OWID < 2)
-            $error("[symmetric_clip]: OWID must be at least 2 for signed symmetric clip");
+            $fatal(1, "[symmetric_clip]: OWID must be at least 2 for signed symmetric clip");
     end
 
     // For signed OWID-bit output the representable positive maximum is 2^(OWID-1)-1.

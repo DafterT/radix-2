@@ -24,9 +24,9 @@ module convergent_rounding
     // Проверка параметров
     initial begin
         if (IWID <= OWID)
-            $error("Convergent_rounding: IWID must be greater than OWID");
+            $fatal(1, "Convergent_rounding: IWID must be greater than OWID");
         if (OWID < 2)
-            $error("Convergent_rounding: OWID must be at least 2");
+            $fatal(1, "Convergent_rounding: OWID must be at least 2");
     end
 
     logic signed [IWID-1:0] w_convergent;
