@@ -7,8 +7,6 @@
 #define FFT_N 64
 #endif
 
-#define FIXED_STAGE_TWIDDLE_COUNT (FFT_N / 2)
-
 typedef struct {
     int16_t re;
     int16_t im;

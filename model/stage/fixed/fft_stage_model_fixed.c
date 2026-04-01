@@ -13,10 +13,6 @@ typedef struct {
     int64_t im;
 } fixed_stage_cpx_i64_t;
 
-enum {
-    FIXED_STAGE_FRAC_BITS = 14
-};
-
 /*
  * Обрезает `value` до ровно `width` бит и затем интерпретирует результат как
  * знаковое число в дополнительном коде той же ширины.
@@ -41,11 +37,11 @@ static fixed_stage_cpx_q2_14_t fixed_stage_calc_twiddle(int twiddle_index) {
     double angle = 2.0 * PI * (double)twiddle_index / (double)FFT_N;
 
     twiddle.re = (int16_t)fixed_stage_wrap_signed(
-        (int64_t)lround(cos(angle) * (double)(1 << FIXED_STAGE_FRAC_BITS)),
+        (int64_t)lround(cos(angle) * (double)(1 << 14)),
         16
     );
     twiddle.im = (int16_t)fixed_stage_wrap_signed(
-        (int64_t)lround(-sin(angle) * (double)(1 << FIXED_STAGE_FRAC_BITS)),
+        (int64_t)lround(-sin(angle) * (double)(1 << 14)),
         16
     );
 
@@ -169,7 +165,7 @@ fixed_stage_output_t fixed_stage_step(
         .b.im = fixed_stage_round_clip_q22_23_to_q16_0(b_out_q22_23.im)
     };
 
-    if (last_i || (current_twiddle_index == (FIXED_STAGE_TWIDDLE_COUNT - 1))) {
+    if (last_i || (current_twiddle_index == ((FFT_N / 2) - 1))) {
         model->twiddle_index = 0;
     } else {
         model->twiddle_index = current_twiddle_index + 1;
