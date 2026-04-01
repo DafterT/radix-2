@@ -95,7 +95,7 @@ module radix2_fft_stage #(
     ) u_last_align (
         .clk     (clk),
         .rst     (rst),
-        .in_data (last_i),
+        .in_data (last_i & valid_i),
         .out_data(last_aligned)
     );
 
