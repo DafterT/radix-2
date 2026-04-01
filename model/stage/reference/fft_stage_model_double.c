@@ -1,4 +1,4 @@
-#include "radix2_fft_stage_model_double.h"
+#include "fft_stage_model_double.h"
 
 #include <math.h>
 

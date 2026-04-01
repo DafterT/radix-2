@@ -1,5 +1,5 @@
-#ifndef RADIX2_FFT_STAGE_MODEL_H
-#define RADIX2_FFT_STAGE_MODEL_H
+#ifndef FFT_STAGE_MODEL_FIXED_H
+#define FFT_STAGE_MODEL_FIXED_H
 
 #include <stdint.h>
 

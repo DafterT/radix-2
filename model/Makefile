@@ -29,7 +29,7 @@ fft:
 stage_fixed:
 	mkdir -p $(BUILD_DIR)
 	$(CC) $(CFLAGS) -Istage/fixed -Istage/reference \
-		stage/fixed/radix2_fft_stage_model.c \
+		stage/fixed/fft_stage_model_fixed.c \
 		stage/fixed/fixed_main.c \
 		-o $(STAGE_FIXED_EXE) $(LDLIBS)
 	$(STAGE_FIXED_EXE)
@@ -37,7 +37,7 @@ stage_fixed:
 stage_double:
 	mkdir -p $(BUILD_DIR)
 	$(CC) $(CFLAGS) -Istage/reference \
-		stage/reference/radix2_fft_stage_model_double.c \
+		stage/reference/fft_stage_model_double.c \
 		stage/reference/double_main.c \
 		-o $(STAGE_DOUBLE_EXE) $(LDLIBS)
 	$(STAGE_DOUBLE_EXE)
@@ -46,8 +46,8 @@ stage_compare:
 	mkdir -p $(BUILD_DIR)
 	$(CC) $(CFLAGS) -Istage/fixed -Istage/reference \
 		stage/tools/radix2_fft_stage_compare.c \
-		stage/fixed/radix2_fft_stage_model.c \
-		stage/reference/radix2_fft_stage_model_double.c \
+		stage/fixed/fft_stage_model_fixed.c \
+		stage/reference/fft_stage_model_double.c \
 		-o $(STAGE_COMPARE_EXE) $(LDLIBS)
 	$(STAGE_COMPARE_EXE)
 
