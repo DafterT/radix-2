@@ -21,7 +21,7 @@ for name, a, b in TESTS:
     b_re = to_fixed(b.real, 14)
     b_im = to_fixed(b.imag, 14)
 
-    # y: Q18.14
+    # y: Q19.14
     y_re = to_fixed(y.real, 14)
     y_im = to_fixed(y.imag, 14)
 
@@ -33,7 +33,7 @@ for name, a, b in TESTS:
             "y_vals": f"{{{y_re}, {y_im}}}",
             "a_comment": f"({a.real:g}, {a.imag:g}) in Q16.0",
             "b_comment": f"({b.real:g}, {b.imag:g}) in Q2.14",
-            "y_comment": f"({y.real:g}, {y.imag:g}) in Q18.14",
+            "y_comment": f"({y.real:g}, {y.imag:g}) in Q19.14",
         }
     )
 

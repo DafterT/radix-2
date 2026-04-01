@@ -14,24 +14,24 @@ typedef struct {
 typedef struct {
     int32_t re;
     int32_t im;
-} cpx_q18_14_t;
+} cpx_q19_14_t;
 
-static cpx_q18_14_t cpx_mul_q16_0_q2_14(cpx_q16_0_t a, cpx_q2_14_t b) {
-    cpx_q18_14_t y;
+static cpx_q19_14_t cpx_mul_q16_0_q2_14(cpx_q16_0_t a, cpx_q2_14_t b) {
+    cpx_q19_14_t y;
 
     int32_t ar_br = (int32_t)a.re * (int32_t)b.re;
     int32_t ai_bi = (int32_t)a.im * (int32_t)b.im;
     int32_t ar_bi = (int32_t)a.re * (int32_t)b.im;
     int32_t ai_br = (int32_t)a.im * (int32_t)b.re;
 
-    // Q16.0 * Q2.14 -> Q18.14
+    // Q16.0 * Q2.14 with complex add/sub combine -> Q19.14
     y.re = ar_br - ai_bi;
     y.im = ar_bi + ai_br;
 
     return y;
 }
 
-void cpx_mul_q16_0_q2_14_dpi(
+void complex_mul_3dsp_model(
     int16_t a_re,
     int16_t a_im,
     int16_t b_re,
@@ -41,7 +41,7 @@ void cpx_mul_q16_0_q2_14_dpi(
 ) {
     cpx_q16_0_t a = {a_re, a_im};
     cpx_q2_14_t b = {b_re, b_im};
-    cpx_q18_14_t y = cpx_mul_q16_0_q2_14(a, b);
+    cpx_q19_14_t y = cpx_mul_q16_0_q2_14(a, b);
 
     *y_re = y.re;
     *y_im = y.im;
@@ -51,7 +51,7 @@ typedef struct {
     const char *name;
     cpx_q16_0_t a;
     cpx_q2_14_t b;
-    cpx_q18_14_t expected;
+    cpx_q19_14_t expected;
 } test_vec_t;
 
 int main(void) {
@@ -60,19 +60,19 @@ int main(void) {
             "t1",
             {3, 2},            // (3, 2) in Q16.0
             {24576, -4096},    // (1.5, -0.25) in Q2.14
-            {81920, 36864}     // (5, 2.25) in Q18.14
+            {81920, 36864}     // (5, 2.25) in Q19.14
         },
         {
             "t2",
             {-7, 4},           // (-7, 4) in Q16.0
             {-16384, 8192},    // (-1, 0.5) in Q2.14
-            {81920, -122880}   // (5, -7.5) in Q18.14
+            {81920, -122880}   // (5, -7.5) in Q19.14
         },
         {
             "t3",
             {32767, -32768},   // (32767, -32768) in Q16.0
             {8192, 8192},      // (0.5, 0.5) in Q2.14
-            {536862720, -8192} // (32767.5, -0.5) in Q18.14
+            {536862720, -8192} // (32767.5, -0.5) in Q19.14
         },
     };
 
@@ -83,7 +83,7 @@ int main(void) {
         int32_t y_re = 0;
         int32_t y_im = 0;
 
-        cpx_mul_q16_0_q2_14_dpi(
+        complex_mul_3dsp_model(
             tests[i].a.re,
             tests[i].a.im,
             tests[i].b.re,

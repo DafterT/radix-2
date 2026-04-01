@@ -1,8 +1,8 @@
 PYTHON ?= python3
-SCRIPT := generate_dpi_complex_fixed_test_cases.py
+SCRIPT := generate_complex_mul_3dsp_test_cases.py
 BUILD_DIR := build
 BUILD_DIR_TARGET := $(BUILD_DIR)/
-OUT := $(BUILD_DIR)/generated_dpi_complex_fixed_test_cases.c
+OUT := $(BUILD_DIR)/generated_complex_mul_3dsp_test_cases.c
 
 .PHONY: all build console file clean
 

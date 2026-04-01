@@ -6,16 +6,16 @@ BUILD_DIR := build
 BUILD_DIR_TARGET := $(BUILD_DIR)/
 EXE_EXT := $(if $(filter Windows_NT,$(OS)),.exe,)
 
-DPI_DIR := dpi
+CMUL_DIR := complex_mul_3dsp
 FFT64_DIR := fft64
 STAGE_FIXED_DIR := stage/fixed
 STAGE_REFERENCE_DIR := stage/reference
 STAGE_TOOLS_DIR := stage/tools
 STAGE_INCLUDE_FLAGS := -I$(STAGE_FIXED_DIR) -I$(STAGE_REFERENCE_DIR)
 
-TARGET_NAME ?= dpi_complex_fixed_test
+TARGET_NAME ?= complex_mul_3dsp_test
 TARGET := $(BUILD_DIR)/$(TARGET_NAME)$(EXE_EXT)
-DPI_SRC := $(DPI_DIR)/dpi_complex_fixed_test.c
+CMUL_SRC := $(CMUL_DIR)/complex_mul_3dsp_test.c
 FFT64_TARGET_NAME := radix2_fft64_model
 FFT64_SRC := $(FFT64_DIR)/radix2_fft64_model.c
 FFT64_TARGET := $(BUILD_DIR)/$(FFT64_TARGET_NAME)$(EXE_EXT)
@@ -47,7 +47,7 @@ build-stage-compare: $(FFT_STAGE_COMPARE_TARGET)
 $(BUILD_DIR_TARGET):
 	mkdir -p $(BUILD_DIR)
 
-$(TARGET): $(DPI_SRC) | $(BUILD_DIR_TARGET)
+$(TARGET): $(CMUL_SRC) | $(BUILD_DIR_TARGET)
 	$(CC) $(CPPFLAGS) $(CFLAGS) $< -o $@ $(LDLIBS)
 
 $(FFT64_TARGET): $(FFT64_SRC) | $(BUILD_DIR_TARGET)
