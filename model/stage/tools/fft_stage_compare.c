@@ -3,11 +3,11 @@
 #endif
 
 #ifndef WHITE_NOISE_BACKOFF_DB
-#define WHITE_NOISE_BACKOFF_DB 20.0
+#define WHITE_NOISE_BACKOFF_DB 10.0
 #endif
 
-#include "../fixed/radix2_fft_stage_model.h"
-#include "../reference/radix2_fft_stage_model_double.h"
+#include "../fixed/fft_stage_model_fixed.h"
+#include "../reference/fft_stage_model_double.h"
 
 #include <math.h>
 #include <stdint.h>
@@ -49,11 +49,11 @@ static double_stage_cpx_t compare_q16_input_to_double(fixed_stage_cpx_q16_0_t va
     return result;
 }
 
-static double_stage_cpx_t compare_fixed_output_to_double(fixed_stage_cpx_q19_14_t value) {
+static double_stage_cpx_t compare_fixed_output_to_double(fixed_stage_cpx_q16_0_t value) {
     double_stage_cpx_t result;
 
-    result.re = fixed_stage_q19_14_to_real(value.re);
-    result.im = fixed_stage_q19_14_to_real(value.im);
+    result.re = (double)value.re;
+    result.im = (double)value.im;
 
     return result;
 }
@@ -105,8 +105,6 @@ static void compare_run(void) {
 
     srand(1);
     compare_fill_white_noise_signal(signal, backoff_linear);
-    fixed_stage_init(&fixed_model);
-    double_stage_init(&double_model);
 
     printf(
         "Stage model comparison, FFT_N=%d, backoff=%.2f dB, scale=1/%.6f\n\n",
@@ -121,8 +119,8 @@ static void compare_run(void) {
         fixed_stage_cpx_q16_0_t b_fixed = signal[(2 * pair_index) + 1];
         double_stage_cpx_t a_double = compare_q16_input_to_double(a_fixed);
         double_stage_cpx_t b_double = compare_q16_input_to_double(b_fixed);
-        fixed_stage_output_t fixed_output = fixed_stage_step(&fixed_model, last_i, a_fixed, b_fixed);
-        double_stage_output_t reference_output = double_stage_step(&double_model, last_i, a_double, b_double);
+        fixed_stage_output_t fixed_output = fixed_stage_step(&fixed_model, a_fixed, b_fixed, last_i);
+        double_stage_output_t reference_output = double_stage_step(&double_model, a_double, b_double, last_i);
         double_stage_cpx_t fixed_a = compare_fixed_output_to_double(fixed_output.a);
         double_stage_cpx_t fixed_b = compare_fixed_output_to_double(fixed_output.b);
         double_stage_cpx_t error_a;

@@ -45,7 +45,7 @@ stage_double:
 stage_compare:
 	mkdir -p $(BUILD_DIR)
 	$(CC) $(CFLAGS) -Istage/fixed -Istage/reference \
-		stage/tools/radix2_fft_stage_compare.c \
+		stage/tools/fft_stage_compare.c \
 		stage/fixed/fft_stage_model_fixed.c \
 		stage/reference/fft_stage_model_double.c \
 		-o $(STAGE_COMPARE_EXE) $(LDLIBS)
