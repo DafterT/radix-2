@@ -84,26 +84,6 @@ IVFLAGS_TW += -P $(TOP_TW).FFT_N=$(FFT_N)
 IVFLAGS_TW += -P $(TOP_TW).TW_W=$(TW_W)
 
 # -------------------------------
-# radix2_top_tb settings
-# -------------------------------
-TOP_RADIX2 := radix2_top_tb
-TB_RADIX2 := $(THIS_DIR)/$(TOP_RADIX2).sv
-RTL_RADIX2 := $(ROOT_DIR)/rtl/DSP48E2_like.sv \
-              $(ROOT_DIR)/rtl/complex_mul_3dsp.sv \
-              $(ROOT_DIR)/rtl/convergent_rounding.sv \
-              $(ROOT_DIR)/rtl/fft_twiddle_rom.sv \
-              $(ROOT_DIR)/rtl/radix2_cu.sv \
-              $(ROOT_DIR)/rtl/radix2_top.sv \
-              $(ROOT_DIR)/rtl/shift_register_with_valid.sv \
-              $(ROOT_DIR)/rtl/symmetric_clip.sv
-SIMV_RADIX2 := $(BUILD_DIR)/$(TOP_RADIX2).vvp
-VCD_RADIX2 ?= $(BUILD_DIR)/$(TOP_RADIX2).vcd
-
-IVFLAGS_RADIX2 := $(IVFLAGS_COMMON)
-IVFLAGS_RADIX2 += -P $(TOP_RADIX2).FFT_N=$(FFT_N)
-IVFLAGS_RADIX2 += -P $(TOP_RADIX2).TW_W=$(TW_W)
-
-# -------------------------------
 # radix_2_butterfly_tb settings
 # -------------------------------
 TOP_BUTTERFLY := radix_2_butterfly_tb
@@ -143,7 +123,7 @@ INFILE_STAGE ?= $(INPUT_DIR)/fixed_stage_stim.txt
 IVFLAGS_STAGE := $(IVFLAGS_COMMON)
 IVFLAGS_STAGE += -P $(TOP_STAGE).FFT_N=$(FFT_N)
 
-.PHONY: all dsp mul round clip twiddle radix2 butterfly stage run-all wave-all build-dsp run-dsp wave-dsp build-mul run-mul wave-mul build-round run-round wave-round build-clip run-clip wave-clip build-tw run-tw wave-tw build-radix2 run-radix2 wave-radix2 build-butterfly run-butterfly wave-butterfly build-stage run-stage wave-stage run wave clean
+.PHONY: all dsp mul round clip twiddle butterfly stage run-all wave-all build-dsp run-dsp wave-dsp build-mul run-mul wave-mul build-round run-round wave-round build-clip run-clip wave-clip build-tw run-tw wave-tw build-butterfly run-butterfly wave-butterfly build-stage run-stage wave-stage run wave clean
 
 all: run-all
 
@@ -156,8 +136,6 @@ round: run-round
 clip: run-clip
 
 twiddle: run-tw
-
-radix2: run-radix2
 
 butterfly: run-butterfly
 
@@ -218,17 +196,6 @@ wave-tw: build-tw
 	$(VVP) $(SIMV_TW) +dump +dumpfile=$(VCD_TW)
 	@echo "VCD generated: $(VCD_TW)"
 
-build-radix2:
-	mkdir -p $(BUILD_DIR)
-	$(IVERILOG) $(IVFLAGS_RADIX2) -o $(SIMV_RADIX2) $(SV_PKG) $(TB_RADIX2) $(RTL_RADIX2)
-
-run-radix2: build-radix2
-	$(VVP) $(SIMV_RADIX2)
-
-wave-radix2: build-radix2
-	$(VVP) $(SIMV_RADIX2) +dump +dumpfile=$(VCD_RADIX2)
-	@echo "VCD generated: $(VCD_RADIX2)"
-
 build-butterfly:
 	mkdir -p $(BUILD_DIR)
 	$(IVERILOG) $(IVFLAGS_BUTTERFLY) -o $(SIMV_BUTTERFLY) $(SV_PKG) $(TB_BUTTERFLY) $(RTL_BUTTERFLY)
@@ -251,9 +218,9 @@ wave-stage: build-stage
 	$(VVP) $(SIMV_STAGE) +infile=$(INFILE_STAGE) +dump +dumpfile=$(VCD_STAGE)
 	@echo "VCD generated: $(VCD_STAGE)"
 
-run-all: run-dsp run-mul run-round run-clip run-tw run-radix2 run-butterfly run-stage
+run-all: run-dsp run-mul run-round run-clip run-tw run-butterfly run-stage
 
-wave-all: wave-dsp wave-mul wave-round wave-clip wave-tw wave-radix2 wave-butterfly wave-stage
+wave-all: wave-dsp wave-mul wave-round wave-clip wave-tw wave-butterfly wave-stage
 
 # Backward compatibility with old single-test flow.
 run: run-dsp
