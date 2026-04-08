@@ -1,4 +1,4 @@
-#include "fft_stage_model_double.h"
+#include "model_double.h"
 
 #include <stdio.h>
 #include <stdlib.h>

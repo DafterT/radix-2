@@ -1,5 +1,5 @@
-#include "fft64_model_fixed.h"
-#include "fft64_fixed_butterfly.h"
+#include "model_fixed.h"
+#include "butterfly_fixed.h"
 
 static unsigned reverse_bits_6(unsigned value) {
     unsigned reversed = 0;

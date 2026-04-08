@@ -1,4 +1,4 @@
-#include "../reference/fft64_model.h"
+#include "../reference/model_double.h"
 
 #include <fftw3.h>
 #include <math.h>
@@ -56,7 +56,7 @@ int main(void) {
 
     fftw_execute(fftw_forward_plan);
 
-    printf("Comparing radix2_fft64_model.c against FFTW3\n");
+    printf("Comparing model_double.c against FFTW3\n");
     printf("Input: deterministic complex white noise, FFT64_SIZE=%d, srand(1)\n\n", FFT64_SIZE);
     printf(
         "%3s | %24s | %24s | %12s | %12s | %12s\n",

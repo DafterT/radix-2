@@ -10,8 +10,8 @@
 #define STAGE_COMPARE_RUNS 100
 #endif
 
-#include "../fixed/fft_stage_model_fixed.h"
-#include "../reference/fft_stage_model_double.h"
+#include "../fixed/model_fixed.h"
+#include "../reference/model_double.h"
 
 #include <math.h>
 #include <stdint.h>

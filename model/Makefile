@@ -27,8 +27,8 @@ mul:
 fft:
 	mkdir -p $(BUILD_DIR)
 	$(CC) $(CFLAGS) -Ifft64/reference \
-		fft64/reference/radix2_fft64_model.c \
-		fft64/reference/fft64_selftest_main.c \
+		fft64/reference/model_double.c \
+		fft64/reference/double_main.c \
 		-o $(FFT_EXE) $(LDLIBS)
 	$(FFT_EXE)
 
@@ -37,25 +37,25 @@ fft_compare:
 	@test -f /usr/include/fftw3.h || \
 		(printf '%s\n' 'fftw3.h not found in WSL. Install libfftw3-dev and rerun make -C model fft_compare.' && exit 1)
 	$(CC) $(CFLAGS) -Ifft64/reference \
-		fft64/reference/radix2_fft64_model.c \
-		fft64/tools/fft64_compare_fftw.c \
+		fft64/reference/model_double.c \
+		fft64/tools/compare_fftw.c \
 		-o $(FFT_COMPARE_EXE) -lfftw3 $(LDLIBS)
 	$(FFT_COMPARE_EXE)
 
 fft_fixed_compare:
 	mkdir -p $(BUILD_DIR)
 	$(CC) $(CFLAGS) -Ifft64/fixed -Ifft64/reference \
-		fft64/fixed/radix2_fft64_model_fixed.c \
-		fft64/fixed/fft64_fixed_butterfly.c \
-		fft64/reference/radix2_fft64_model.c \
-		fft64/tools/fft64_fixed_compare.c \
+		fft64/fixed/model_fixed.c \
+		fft64/fixed/butterfly_fixed.c \
+		fft64/reference/model_double.c \
+		fft64/tools/compare_fixed.c \
 		-o $(FFT_FIXED_COMPARE_EXE) $(LDLIBS)
 	$(FFT_FIXED_COMPARE_EXE)
 
 stage_fixed:
 	mkdir -p $(BUILD_DIR)
 	$(CC) $(CFLAGS) -Istage/fixed -Istage/reference \
-		stage/fixed/fft_stage_model_fixed.c \
+		stage/fixed/model_fixed.c \
 		stage/fixed/fixed_main.c \
 		-o $(STAGE_FIXED_EXE) $(LDLIBS)
 	$(STAGE_FIXED_EXE)
@@ -63,7 +63,7 @@ stage_fixed:
 stage_double:
 	mkdir -p $(BUILD_DIR)
 	$(CC) $(CFLAGS) -Istage/reference \
-		stage/reference/fft_stage_model_double.c \
+		stage/reference/model_double.c \
 		stage/reference/double_main.c \
 		-o $(STAGE_DOUBLE_EXE) $(LDLIBS)
 	$(STAGE_DOUBLE_EXE)
@@ -71,9 +71,9 @@ stage_double:
 stage_compare:
 	mkdir -p $(BUILD_DIR)
 	$(CC) $(CFLAGS) -Istage/fixed -Istage/reference \
-		stage/tools/fft_stage_compare.c \
-		stage/fixed/fft_stage_model_fixed.c \
-		stage/reference/fft_stage_model_double.c \
+		stage/tools/compare.c \
+		stage/fixed/model_fixed.c \
+		stage/reference/model_double.c \
 		-o $(STAGE_COMPARE_EXE) $(LDLIBS)
 	$(STAGE_COMPARE_EXE) | tee $(STAGE_COMPARE_LOG)
 

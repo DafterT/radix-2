@@ -6,8 +6,8 @@
 #define FFT64_COMPARE_RUNS 100
 #endif
 
-#include "../fixed/fft64_model_fixed.h"
-#include "../reference/fft64_model.h"
+#include "../fixed/model_fixed.h"
+#include "../reference/model_double.h"
 
 #include <math.h>
 #include <stdint.h>

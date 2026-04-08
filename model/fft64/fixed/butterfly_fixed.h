@@ -1,7 +1,7 @@
-#ifndef FFT64_FIXED_BUTTERFLY_H
-#define FFT64_FIXED_BUTTERFLY_H
+#ifndef FFT64_BUTTERFLY_FIXED_H
+#define FFT64_BUTTERFLY_FIXED_H
 
-#include "fft64_model_fixed.h"
+#include "model_fixed.h"
 
 void fft64_fixed_butterfly(
     fft64_fixed_cpx_q16_0_t *top,

@@ -1,4 +1,4 @@
-#include "fft_stage_model_fixed.h"
+#include "model_fixed.h"
 
 #include <math.h>
 #include <stdint.h>

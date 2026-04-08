@@ -1,4 +1,4 @@
-#include "fft64_model.h"
+#include "model_double.h"
 
 #include <math.h>
 

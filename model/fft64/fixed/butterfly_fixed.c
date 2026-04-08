@@ -1,4 +1,4 @@
-#include "fft64_fixed_butterfly.h"
+#include "butterfly_fixed.h"
 
 #include <math.h>
 #include <stdint.h>
