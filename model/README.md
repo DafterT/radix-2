@@ -1,20 +1,23 @@
 # model
 
-This directory is organized by purpose rather than by historical file order.
+Этот каталог организован по назначению, а не по истории появления файлов.
 
-- `build/`: generated executables and temporary build outputs from the top-level `model/Makefile`.
-- `complex_mul_3dsp/`: standalone model and self-test for the 3-DSP complex multiplier used in RTL.
-- `stage/fixed/`: fixed-point functional model for a radix-2 FFT stage.
-- `stage/reference/`: double-precision reference model for the same stage behavior.
-- `stage/tools/`: comparison utilities built on top of the stage models, such as SQNR checks.
-- `fft64/`: standalone 64-point radix-2 FFT reference model.
-- `complex_mul_3dsp/tools/`: generators for complex multiplier test vectors and related helper scripts.
-- `tools/`: miscellaneous standalone helpers, such as scripts for inspecting twiddle ROM data.
+- `build/`: сгенерированные исполняемые файлы и временные артефакты сборки из верхнеуровневого `model/Makefile`.
+- `complex_mul_3dsp/`: отдельная модель и self-test для комплексного умножителя на 3 DSP, который используется в RTL.
+- `complex_mul_3dsp/tools/`: генераторы тестовых векторов и вспомогательные утилиты для модели комплексного умножителя.
+- `stage/fixed/`: функциональная модель одного radix-2 FFT stage в fixed-point формате.
+- `stage/reference/`: reference-модель того же stage на `double`.
+- `stage/tools/`: утилиты сравнения поверх stage-моделей, например для оценки SQNR.
+- `fft64/reference/`: reference-модель 64-точечного radix-2 FFT и отдельный self-test для нее.
+- `fft64/tools/`: утилиты сравнения FFT64, включая сопоставление с библиотечной реализацией FFTW3.
+- `tools/`: прочие вспомогательные скрипты, например для просмотра данных twiddle ROM.
 
-The top-level `model/Makefile` still provides the main entry points:
+Основные точки входа из верхнего `model/Makefile`:
 
-- `make -C model run`
-- `make -C model run-fft64`
-- `make -C model run-stage`
-- `make -C model run-stage-double`
-- `make -C model run-stage-compare`
+- `make -C model mul`
+- `make -C model fft`
+- `make -C model fft_compare`
+- `make -C model stage_fixed`
+- `make -C model stage_double`
+- `make -C model stage_compare`
+- `make -C model print_twiddle`
