@@ -30,7 +30,7 @@ module radix2_fft_stage #(
     localparam int ADDR_W            = (DEPTH > 1) ? $clog2(DEPTH) : 1;
     localparam int AB_WIDTH          = 2 * $bits(complex16_t);
     localparam int INPUT_ALIGN_DEPTH = 1;
-    localparam int BUTTERFLY_LATENCY = 8;
+    localparam int BUTTERFLY_LATENCY = 9;
     localparam int LAST_ALIGN_DEPTH  = INPUT_ALIGN_DEPTH + BUTTERFLY_LATENCY;
 
     logic                ab_aligned_vld;

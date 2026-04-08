@@ -14,9 +14,9 @@ module radix2_butterfly (
     output complex16_t b_out    // Q16.0
 );
 
-    localparam int MUL_LATENCY_CYCLES  = 4;
-    localparam int A_WIDTH             = $bits(complex16_t);
-    localparam int DSP_PIPELINE_STAGES = 3;
+    localparam int MUL_LATENCY_CYCLES     = 4;
+    localparam int A_WIDTH                = $bits(complex16_t);
+    localparam int OUTPUT_PIPELINE_STAGES = 4;
 
     // 1 / SQRT(2) в формате Q1.17
     localparam real INV_SQRT2_REAL = 1.0 / $sqrt(2.0);
@@ -50,7 +50,7 @@ module radix2_butterfly (
     complex16_t         a_out_q16_0;
     complex16_t         b_out_q16_0;
     // Пайплайн valid
-    logic [DSP_PIPELINE_STAGES-1:0] valid_pipe;
+    logic [OUTPUT_PIPELINE_STAGES-1:0] valid_pipe;
 
     function automatic complex34_comp_t q16_0_to_q20_14(
         input complex16_comp_t value_in
@@ -181,12 +181,16 @@ module radix2_butterfly (
     assign b_out_im_q22_23 = $signed(b_out_im_dsp_raw[44:0]);
 
     complex_round_clip_q22_23_to_q16_0 u_a_out_post (
+        .clk (clk),
+        .rst (rst),
         .re_i(a_out_re_q22_23),
         .im_i(a_out_im_q22_23),
         .o_data(a_out_q16_0)
     );
 
     complex_round_clip_q22_23_to_q16_0 u_b_out_post (
+        .clk (clk),
+        .rst (rst),
         .re_i(b_out_re_q22_23),
         .im_i(b_out_im_q22_23),
         .o_data(b_out_q16_0)
@@ -198,10 +202,10 @@ module radix2_butterfly (
             valid_o    <= 1'b0;
         end else begin
             valid_pipe[0] <= a_aligned_vld;
-            for (int i = 1; i < DSP_PIPELINE_STAGES; i++)
+            for (int i = 1; i < OUTPUT_PIPELINE_STAGES; i++)
                 valid_pipe[i] <= valid_pipe[i-1];
 
-            valid_o <= valid_pipe[DSP_PIPELINE_STAGES-1];
+            valid_o <= valid_pipe[OUTPUT_PIPELINE_STAGES-1];
         end
     end
 
@@ -209,7 +213,7 @@ module radix2_butterfly (
         if (rst) begin
             a_out <= '0;
             b_out <= '0;
-        end else if (valid_pipe[DSP_PIPELINE_STAGES-1]) begin
+        end else if (valid_pipe[OUTPUT_PIPELINE_STAGES-1]) begin
             a_out <= a_out_q16_0;
             b_out <= b_out_q16_0;
         end
