@@ -9,12 +9,13 @@ TWIDDLE_N ?= 64
 MUL_EXE := $(BUILD_DIR)/mul$(EXE_EXT)
 FFT_EXE := $(BUILD_DIR)/fft$(EXE_EXT)
 FFT_COMPARE_EXE := $(BUILD_DIR)/fft_compare$(EXE_EXT)
+FFT_FIXED_COMPARE_EXE := $(BUILD_DIR)/fft_fixed_compare$(EXE_EXT)
 STAGE_FIXED_EXE := $(BUILD_DIR)/stage_fixed$(EXE_EXT)
 STAGE_DOUBLE_EXE := $(BUILD_DIR)/stage_double$(EXE_EXT)
 STAGE_COMPARE_EXE := $(BUILD_DIR)/stage_compare$(EXE_EXT)
 STAGE_COMPARE_LOG := $(BUILD_DIR)/stage_compare.log
 
-.PHONY: all mul fft fft_compare stage_fixed stage_double stage_compare print_twiddle clean
+.PHONY: all mul fft fft_compare fft_fixed_compare stage_fixed stage_double stage_compare print_twiddle clean
 
 all: mul fft stage_fixed stage_double stage_compare print_twiddle
 
@@ -40,6 +41,16 @@ fft_compare:
 		fft64/tools/fft64_compare_fftw.c \
 		-o $(FFT_COMPARE_EXE) -lfftw3 $(LDLIBS)
 	$(FFT_COMPARE_EXE)
+
+fft_fixed_compare:
+	mkdir -p $(BUILD_DIR)
+	$(CC) $(CFLAGS) -Ifft64/fixed -Ifft64/reference \
+		fft64/fixed/radix2_fft64_model_fixed.c \
+		fft64/fixed/fft64_fixed_butterfly.c \
+		fft64/reference/radix2_fft64_model.c \
+		fft64/tools/fft64_fixed_compare.c \
+		-o $(FFT_FIXED_COMPARE_EXE) $(LDLIBS)
+	$(FFT_FIXED_COMPARE_EXE)
 
 stage_fixed:
 	mkdir -p $(BUILD_DIR)
