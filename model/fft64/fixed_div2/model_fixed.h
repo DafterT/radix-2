@@ -14,7 +14,7 @@ typedef struct {
     fft64_fixed_cpx_q16_0_t bins[FFT64_FIXED_SIZE];
 } fft64_fixed_result_t;
 
-fft64_fixed_result_t fft64_radix2_fixed(
+fft64_fixed_result_t fft64_radix2_fixed_div2(
     const fft64_fixed_cpx_q16_0_t input[FFT64_FIXED_SIZE]
 );
 

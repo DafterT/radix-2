@@ -80,7 +80,7 @@ static void fft64_fixed_execute_stage(
             fft64_fixed_cpx_q16_0_t top = fft64_fixed_memory_read(memory, (unsigned)top_index);
             fft64_fixed_cpx_q16_0_t bottom = fft64_fixed_memory_read(memory, (unsigned)bottom_index);
 
-            fft64_fixed_butterfly(
+            fft64_fixed_butterfly_div2(
                 &top,
                 &bottom,
                 twiddle_index,
@@ -113,7 +113,7 @@ static void fft64_fixed_collect_result(
     }
 }
 
-fft64_fixed_result_t fft64_radix2_fixed(
+fft64_fixed_result_t fft64_radix2_fixed_div2(
     const fft64_fixed_cpx_q16_0_t input[FFT64_FIXED_SIZE]
 ) {
     fft64_fixed_memory_t memory = {0};

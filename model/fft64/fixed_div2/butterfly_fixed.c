@@ -105,7 +105,7 @@ static int16_t fft64_fixed_round_clip_q22_23_to_q16_0(int64_t value_q22_23) {
     return (int16_t)rounded_q22_0;
 }
 
-void fft64_fixed_butterfly(
+void fft64_fixed_butterfly_div2(
     fft64_fixed_cpx_q16_0_t *top,
     fft64_fixed_cpx_q16_0_t *bottom,
     int twiddle_index,

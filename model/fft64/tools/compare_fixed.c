@@ -1,12 +1,12 @@
 #ifndef WHITE_NOISE_BACKOFF_DB
-#define WHITE_NOISE_BACKOFF_DB 11.0
+#define WHITE_NOISE_BACKOFF_DB 14.0
 #endif
 
 #ifndef FFT64_COMPARE_RUNS
-#define FFT64_COMPARE_RUNS 100
+#define FFT64_COMPARE_RUNS 1000
 #endif
 
-#include "../fixed/model_fixed.h"
+#include "../fixed_sqrt2/model_fixed.h"
 #include "../reference/model_double.h"
 
 #include <math.h>
@@ -15,6 +15,10 @@
 #include <stdlib.h>
 
 #define INPUT_WIDTH 16
+
+fft64_fixed_result_t fft64_radix2_fixed_div2(
+    const fft64_fixed_cpx_q16_0_t input[FFT64_FIXED_SIZE]
+);
 
 static double compare_random_unit_sample(void) {
     return -1.0 + (2.0 * (double)rand() / (double)RAND_MAX);
@@ -64,6 +68,21 @@ static double compare_reference_output_scale(void) {
     return scale;
 }
 
+static double compare_reference_output_scale_div2(void) {
+    double scale = 1.0;
+    int stage_index = 0;
+
+    for (int stage_size = 2; stage_size <= FFT64_SIZE; stage_size *= 2) {
+        if ((stage_index & 1) != 0) {
+            scale *= 0.5;
+        }
+
+        stage_index += 1;
+    }
+
+    return scale;
+}
+
 static double compare_cpx_error_mag(fft64_complex_t reference, fft64_complex_t actual) {
     return hypot(reference.re - actual.re, reference.im - actual.im);
 }
@@ -85,10 +104,14 @@ int main(void) {
     const double fullscale_power = 2.0 * max_q16_0 * max_q16_0;
     const double backoff_ratio = pow(10.0, WHITE_NOISE_BACKOFF_DB / 10.0);
     const double input_scale = sqrt(fullscale_power / backoff_ratio);
-    const double reference_output_scale = compare_reference_output_scale();
-    double sqnr_sum_db = 0.0;
-    double total_error_mag = 0.0;
-    double max_error_mag = 0.0;
+    const double reference_output_scale_sqrt2 = compare_reference_output_scale();
+    const double reference_output_scale_div2 = compare_reference_output_scale_div2();
+    double sqrt2_sqnr_sum_db = 0.0;
+    double sqrt2_total_error_mag = 0.0;
+    double sqrt2_max_error_mag = 0.0;
+    double div2_sqnr_sum_db = 0.0;
+    double div2_total_error_mag = 0.0;
+    double div2_max_error_mag = 0.0;
 
     srand(1);
 
@@ -98,69 +121,115 @@ int main(void) {
     printf("Total bins         = %d\n", FFT64_COMPARE_RUNS * FFT64_FIXED_SIZE);
     printf("Backoff            = %.3f dB\n", WHITE_NOISE_BACKOFF_DB);
     printf("Input scale        = %.3f\n", input_scale);
-    printf("Reference scale    = %.9f\n\n", reference_output_scale);
+    printf("Reference scale sqrt2 = %.9f\n", reference_output_scale_sqrt2);
+    printf("Reference scale div2  = %.9f\n\n", reference_output_scale_div2);
 
     for (int run = 0; run < FFT64_COMPARE_RUNS; ++run) {
         fft64_fixed_cpx_q16_0_t fixed_input[FFT64_FIXED_SIZE];
         fft64_complex_t reference_input[FFT64_SIZE];
-        fft64_fixed_result_t fixed_output;
+        fft64_fixed_result_t fixed_sqrt2_output;
+        fft64_fixed_result_t fixed_div2_output;
         fft64_result_t reference_output;
-        double run_error_mag = 0.0;
-        double run_max_error_mag = 0.0;
-        double signal_power = 0.0;
-        double noise_power = 0.0;
+        double sqrt2_run_error_mag = 0.0;
+        double sqrt2_run_max_error_mag = 0.0;
+        double sqrt2_signal_power = 0.0;
+        double sqrt2_noise_power = 0.0;
+        double div2_run_error_mag = 0.0;
+        double div2_run_max_error_mag = 0.0;
+        double div2_signal_power = 0.0;
+        double div2_noise_power = 0.0;
 
         for (int i = 0; i < FFT64_FIXED_SIZE; ++i) {
             fixed_input[i] = compare_make_fixed_input(input_scale);
             reference_input[i] = compare_fixed_to_double(fixed_input[i]);
         }
 
-        fixed_output = fft64_radix2_fixed(fixed_input);
+        fixed_sqrt2_output = fft64_radix2_fixed(fixed_input);
+        fixed_div2_output = fft64_radix2_fixed_div2(fixed_input);
         reference_output = fft64_radix2(reference_input);
 
         for (int bin = 0; bin < FFT64_FIXED_SIZE; ++bin) {
-            fft64_complex_t fixed_bin = compare_fixed_to_double(fixed_output.bins[bin]);
-            fft64_complex_t reference_bin = {
-                .re = reference_output.bins[bin].re * reference_output_scale,
-                .im = reference_output.bins[bin].im * reference_output_scale
+            fft64_complex_t fixed_sqrt2_bin = compare_fixed_to_double(fixed_sqrt2_output.bins[bin]);
+            fft64_complex_t fixed_div2_bin = compare_fixed_to_double(fixed_div2_output.bins[bin]);
+            fft64_complex_t reference_sqrt2_bin = {
+                .re = reference_output.bins[bin].re * reference_output_scale_sqrt2,
+                .im = reference_output.bins[bin].im * reference_output_scale_sqrt2
             };
-            double error_mag = compare_cpx_error_mag(reference_bin, fixed_bin);
-            fft64_complex_t error_bin = {
-                .re = reference_bin.re - fixed_bin.re,
-                .im = reference_bin.im - fixed_bin.im
+            fft64_complex_t reference_div2_bin = {
+                .re = reference_output.bins[bin].re * reference_output_scale_div2,
+                .im = reference_output.bins[bin].im * reference_output_scale_div2
+            };
+            double sqrt2_error_mag = compare_cpx_error_mag(reference_sqrt2_bin, fixed_sqrt2_bin);
+            double div2_error_mag = compare_cpx_error_mag(reference_div2_bin, fixed_div2_bin);
+            fft64_complex_t sqrt2_error_bin = {
+                .re = reference_sqrt2_bin.re - fixed_sqrt2_bin.re,
+                .im = reference_sqrt2_bin.im - fixed_sqrt2_bin.im
+            };
+            fft64_complex_t div2_error_bin = {
+                .re = reference_div2_bin.re - fixed_div2_bin.re,
+                .im = reference_div2_bin.im - fixed_div2_bin.im
             };
 
-            run_error_mag += error_mag;
-            total_error_mag += error_mag;
-            signal_power += compare_cpx_power(reference_bin);
-            noise_power += compare_cpx_power(error_bin);
+            sqrt2_run_error_mag += sqrt2_error_mag;
+            sqrt2_total_error_mag += sqrt2_error_mag;
+            sqrt2_signal_power += compare_cpx_power(reference_sqrt2_bin);
+            sqrt2_noise_power += compare_cpx_power(sqrt2_error_bin);
 
-            if (error_mag > run_max_error_mag) {
-                run_max_error_mag = error_mag;
+            if (sqrt2_error_mag > sqrt2_run_max_error_mag) {
+                sqrt2_run_max_error_mag = sqrt2_error_mag;
             }
 
-            if (error_mag > max_error_mag) {
-                max_error_mag = error_mag;
+            if (sqrt2_error_mag > sqrt2_max_error_mag) {
+                sqrt2_max_error_mag = sqrt2_error_mag;
+            }
+
+            div2_run_error_mag += div2_error_mag;
+            div2_total_error_mag += div2_error_mag;
+            div2_signal_power += compare_cpx_power(reference_div2_bin);
+            div2_noise_power += compare_cpx_power(div2_error_bin);
+
+            if (div2_error_mag > div2_run_max_error_mag) {
+                div2_run_max_error_mag = div2_error_mag;
+            }
+
+            if (div2_error_mag > div2_max_error_mag) {
+                div2_max_error_mag = div2_error_mag;
             }
         }
-        double run_sqnr_db = compare_sqnr_db(signal_power, noise_power);
+        double sqrt2_run_sqnr_db = compare_sqnr_db(sqrt2_signal_power, sqrt2_noise_power);
+        double div2_run_sqnr_db = compare_sqnr_db(div2_signal_power, div2_noise_power);
 
-        sqnr_sum_db += run_sqnr_db;
+        sqrt2_sqnr_sum_db += sqrt2_run_sqnr_db;
+        div2_sqnr_sum_db += div2_run_sqnr_db;
 
         printf(
-            "run=%d avg_error=%.6f max_error=%.6f signal_power=%.3f noise_power=%.3f sqnr=%.3f dB\n",
+            "run=%d sqrt2: avg_error=%.6f max_error=%.6f signal_power=%.3f noise_power=%.3f sqnr=%.3f dB | div2: avg_error=%.6f max_error=%.6f signal_power=%.3f noise_power=%.3f sqnr=%.3f dB\n",
             run,
-            run_error_mag / (double)FFT64_FIXED_SIZE,
-            run_max_error_mag,
-            signal_power,
-            noise_power,
-            run_sqnr_db
+            sqrt2_run_error_mag / (double)FFT64_FIXED_SIZE,
+            sqrt2_run_max_error_mag,
+            sqrt2_signal_power,
+            sqrt2_noise_power,
+            sqrt2_run_sqnr_db,
+            div2_run_error_mag / (double)FFT64_FIXED_SIZE,
+            div2_run_max_error_mag,
+            div2_signal_power,
+            div2_noise_power,
+            div2_run_sqnr_db
         );
     }
 
-    printf("\nAverage error      = %.6f\n", total_error_mag / (double)(FFT64_COMPARE_RUNS * FFT64_FIXED_SIZE));
-    printf("Maximum error      = %.6f\n", max_error_mag);
-    printf("Average SQNR       = %.3f dB\n", sqnr_sum_db / (double)FFT64_COMPARE_RUNS);
+    printf(
+        "\n[sqrt2] Average error = %.6f\n[sqrt2] Maximum error = %.6f\n[sqrt2] Average SQNR  = %.3f dB\n",
+        sqrt2_total_error_mag / (double)(FFT64_COMPARE_RUNS * FFT64_FIXED_SIZE),
+        sqrt2_max_error_mag,
+        sqrt2_sqnr_sum_db / (double)FFT64_COMPARE_RUNS
+    );
+    printf(
+        "\n[div2]  Average error = %.6f\n[div2]  Maximum error = %.6f\n[div2]  Average SQNR  = %.3f dB\n",
+        div2_total_error_mag / (double)(FFT64_COMPARE_RUNS * FFT64_FIXED_SIZE),
+        div2_max_error_mag,
+        div2_sqnr_sum_db / (double)FFT64_COMPARE_RUNS
+    );
 
     return 0;
 }
