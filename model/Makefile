@@ -44,9 +44,9 @@ fft_compare:
 
 fft_fixed_compare:
 	mkdir -p $(BUILD_DIR)
-	$(CC) $(CFLAGS) -Ifft64/fixed -Ifft64/reference \
-		fft64/fixed/model_fixed.c \
-		fft64/fixed/butterfly_fixed.c \
+	$(CC) $(CFLAGS) -Ifft64/fixed_sqrt2 -Ifft64/reference \
+		fft64/fixed_sqrt2/model_fixed.c \
+		fft64/fixed_sqrt2/butterfly_fixed.c \
 		fft64/reference/model_double.c \
 		fft64/tools/compare_fixed.c \
 		-o $(FFT_FIXED_COMPARE_EXE) $(LDLIBS)
