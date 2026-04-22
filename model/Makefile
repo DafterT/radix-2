@@ -21,7 +21,10 @@ all: mul fft stage_fixed stage_double stage_compare print_twiddle
 
 mul:
 	mkdir -p $(BUILD_DIR)
-	$(CC) $(CFLAGS) complex_mul_3dsp/complex_mul_3dsp_test.c -o $(MUL_EXE) $(LDLIBS)
+	$(CC) $(CFLAGS) -Icomplex_mul_3dsp \
+		complex_mul_3dsp/complex_mul_3dsp_model.c \
+		complex_mul_3dsp/complex_mul_3dsp_test.c \
+		-o $(MUL_EXE) $(LDLIBS)
 	$(MUL_EXE)
 
 fft:

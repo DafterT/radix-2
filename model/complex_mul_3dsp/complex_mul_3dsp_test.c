@@ -1,6 +1,8 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#include "complex_mul_3dsp_model.h"
+
 typedef struct {
     int16_t re;
     int16_t im;
@@ -12,40 +14,9 @@ typedef struct {
 } cpx_q2_14_t;
 
 typedef struct {
-    int32_t re;
-    int32_t im;
+    int64_t re;
+    int64_t im;
 } cpx_q19_14_t;
-
-static cpx_q19_14_t cpx_mul_q16_0_q2_14(cpx_q16_0_t a, cpx_q2_14_t b) {
-    cpx_q19_14_t y;
-
-    int32_t ar_br = (int32_t)a.re * (int32_t)b.re;
-    int32_t ai_bi = (int32_t)a.im * (int32_t)b.im;
-    int32_t ar_bi = (int32_t)a.re * (int32_t)b.im;
-    int32_t ai_br = (int32_t)a.im * (int32_t)b.re;
-
-    // Q16.0 * Q2.14 with complex add/sub combine -> Q19.14
-    y.re = ar_br - ai_bi;
-    y.im = ar_bi + ai_br;
-
-    return y;
-}
-
-void complex_mul_3dsp_model(
-    int16_t a_re,
-    int16_t a_im,
-    int16_t b_re,
-    int16_t b_im,
-    int32_t *y_re,
-    int32_t *y_im
-) {
-    cpx_q16_0_t a = {a_re, a_im};
-    cpx_q2_14_t b = {b_re, b_im};
-    cpx_q19_14_t y = cpx_mul_q16_0_q2_14(a, b);
-
-    *y_re = y.re;
-    *y_im = y.im;
-}
 
 typedef struct {
     const char *name;
@@ -74,16 +45,28 @@ int main(void) {
             {8192, 8192},      // (0.5, 0.5) in Q2.14
             {536862720, -8192} // (32767.5, -0.5) in Q19.14
         },
+        {
+            "g01",
+            {-32768, -32768},  // (-32768, -32768) in Q16.0
+            {-32768, -32768},  // (-2.0, -2.0) in Q2.14
+            {0, 2147483648LL}  // (0, 131072.0) in Q19.14
+        },
+        {
+            "g02",
+            {-32768, -32768},  // (-32768, -32768) in Q16.0
+            {-32768, 32767},   // (-2.0, 1.999939) in Q2.14
+            {2147450880LL, 32768} // (131070.0, 2.0) in Q19.14
+        },
     };
 
     int fails = 0;
     const int count = (int)(sizeof(tests) / sizeof(tests[0]));
 
     for (int i = 0; i < count; ++i) {
-        int32_t y_re = 0;
-        int32_t y_im = 0;
+        int64_t y_re = 0;
+        int64_t y_im = 0;
 
-        complex_mul_3dsp_model(
+        complex_mul_3dsp_eval(
             tests[i].a.re,
             tests[i].a.im,
             tests[i].b.re,
@@ -94,12 +77,12 @@ int main(void) {
 
         if (y_re != tests[i].expected.re || y_im != tests[i].expected.im) {
             ++fails;
-            printf("FAIL %s: got (%d, %d), expected (%d, %d)\n",
+            printf("FAIL %s: got (%lld, %lld), expected (%lld, %lld)\n",
                    tests[i].name,
-                   y_re,
-                   y_im,
-                   tests[i].expected.re,
-                   tests[i].expected.im);
+                   (long long)y_re,
+                   (long long)y_im,
+                   (long long)tests[i].expected.re,
+                   (long long)tests[i].expected.im);
         } else {
             printf("PASS %s\n", tests[i].name);
         }

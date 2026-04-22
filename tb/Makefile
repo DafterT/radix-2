@@ -24,10 +24,10 @@ RESET_CYCLES ?= 4
 MUL_OUTPUT_OFFSET_CYCLES ?= 4
 DSP_BOOL_VALUES := 0 1
 
-DSP_VERILATOR_ARGS := PREADD_SUB=$(PREADD_SUB)
+DSP_VERILATOR_ARGS := TOP=$(TOP_DSP)
+DSP_VERILATOR_ARGS += PREADD_SUB=$(PREADD_SUB)
 DSP_VERILATOR_ARGS += POSTADD_EN=$(POSTADD_EN)
 DSP_VERILATOR_ARGS += POSTADD_SUB=$(POSTADD_SUB)
-DSP_VERILATOR_ARGS += RESET_CYCLES=$(RESET_CYCLES)
 DSP_VERILATOR_ARGS += INFILE=$(INFILE_DSP)
 DSP_VERILATOR_ARGS += DUMPFILE=$(VCD_DSP)
 
@@ -35,15 +35,14 @@ DSP_VERILATOR_ARGS += DUMPFILE=$(VCD_DSP)
 # complex_mul_3dsp_file_tb settings
 # -------------------------------
 TOP_MUL := complex_mul_3dsp_file_tb
-TB_MUL := $(THIS_DIR)/$(TOP_MUL).sv
-RTL_MUL := $(ROOT_DIR)/rtl/DSP48E2_like.sv $(ROOT_DIR)/rtl/complex_mul_3dsp.sv
-SIMV_MUL := $(BUILD_DIR)/$(TOP_MUL).vvp
 VCD_MUL ?= $(BUILD_DIR)/$(TOP_MUL).vcd
 INFILE_MUL ?= $(INPUT_DIR)/input_complex_vectors.txt
 
-IVFLAGS_MUL := $(IVFLAGS_COMMON)
-IVFLAGS_MUL += -P $(TOP_MUL).RESET_CYCLES=$(RESET_CYCLES)
-IVFLAGS_MUL += -P $(TOP_MUL).OUTPUT_OFFSET_CYCLES=$(MUL_OUTPUT_OFFSET_CYCLES)
+MUL_VERILATOR_ARGS := TOP=$(TOP_MUL)
+MUL_VERILATOR_ARGS += RESET_CYCLES=$(RESET_CYCLES)
+MUL_VERILATOR_ARGS += OUTPUT_OFFSET_CYCLES=$(MUL_OUTPUT_OFFSET_CYCLES)
+MUL_VERILATOR_ARGS += INFILE=$(INFILE_MUL)
+MUL_VERILATOR_ARGS += DUMPFILE=$(VCD_MUL)
 
 # -------------------------------
 # convergent_rounding_tb settings
@@ -123,7 +122,7 @@ INFILE_STAGE ?= $(INPUT_DIR)/fixed_stage_stim.txt
 IVFLAGS_STAGE := $(IVFLAGS_COMMON)
 IVFLAGS_STAGE += -P $(TOP_STAGE).FFT_N=$(FFT_N)
 
-.PHONY: all dsp mul round clip twiddle butterfly stage run-all wave-all build-dsp build-dsp-one run-dsp run-dsp-one wave-dsp wave-dsp-one build-mul run-mul wave-mul build-round run-round wave-round build-clip run-clip wave-clip build-tw run-tw wave-tw build-butterfly run-butterfly wave-butterfly build-stage run-stage wave-stage run wave clean
+.PHONY: all dsp mul round clip twiddle butterfly stage run-all wave-all build-dsp build-dsp-one run-dsp run-dsp-one wave-dsp wave-dsp-one build-mul build-mul-one run-mul run-mul-one wave-mul wave-mul-one build-round run-round wave-round build-clip run-clip wave-clip build-tw run-tw wave-tw build-butterfly run-butterfly wave-butterfly build-stage run-stage wave-stage run wave clean
 
 all: run-all
 
@@ -168,16 +167,20 @@ wave-dsp: wave-dsp-one
 wave-dsp-one:
 	$(MAKE) -C $(DPI_C_DSP_DIR) wave $(DSP_VERILATOR_ARGS)
 
-build-mul:
-	mkdir -p $(BUILD_DIR)
-	$(IVERILOG) $(IVFLAGS_MUL) -o $(SIMV_MUL) $(SV_PKG) $(TB_MUL) $(RTL_MUL)
+build-mul: build-mul-one
 
-run-mul: build-mul
-	$(VVP) $(SIMV_MUL) +infile=$(INFILE_MUL)
+build-mul-one:
+	$(MAKE) -C $(DPI_C_DSP_DIR) build $(MUL_VERILATOR_ARGS)
 
-wave-mul: build-mul
-	$(VVP) $(SIMV_MUL) +infile=$(INFILE_MUL) +dump +dumpfile=$(VCD_MUL)
-	@echo "VCD generated: $(VCD_MUL)"
+run-mul: run-mul-one
+
+run-mul-one:
+	$(MAKE) -C $(DPI_C_DSP_DIR) run $(MUL_VERILATOR_ARGS)
+
+wave-mul: wave-mul-one
+
+wave-mul-one:
+	$(MAKE) -C $(DPI_C_DSP_DIR) wave $(MUL_VERILATOR_ARGS)
 
 build-round:
 	mkdir -p $(BUILD_DIR)
