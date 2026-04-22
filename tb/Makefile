@@ -13,9 +13,7 @@ SV_PKG := $(ROOT_DIR)/rtl/radix2_types_pkg.sv
 # DSP48E2_like_file_tb settings
 # -----------------------------
 TOP_DSP := DSP48E2_like_file_tb
-TB_DSP := $(THIS_DIR)/$(TOP_DSP).sv
-RTL_DSP := $(ROOT_DIR)/rtl/DSP48E2_like.sv
-SIMV_DSP := $(BUILD_DIR)/$(TOP_DSP).vvp
+DPI_C_DSP_DIR := $(THIS_DIR)/dpi_c
 VCD_DSP ?= $(BUILD_DIR)/$(TOP_DSP).vcd
 INFILE_DSP ?= $(INPUT_DIR)/input_vectors.txt
 
@@ -24,12 +22,14 @@ POSTADD_EN ?= 1
 POSTADD_SUB ?= 0
 RESET_CYCLES ?= 4
 MUL_OUTPUT_OFFSET_CYCLES ?= 4
+DSP_BOOL_VALUES := 0 1
 
-IVFLAGS_DSP := $(IVFLAGS_COMMON)
-IVFLAGS_DSP += -P $(TOP_DSP).PREADD_SUB=$(PREADD_SUB)
-IVFLAGS_DSP += -P $(TOP_DSP).POSTADD_EN=$(POSTADD_EN)
-IVFLAGS_DSP += -P $(TOP_DSP).POSTADD_SUB=$(POSTADD_SUB)
-IVFLAGS_DSP += -P $(TOP_DSP).RESET_CYCLES=$(RESET_CYCLES)
+DSP_VERILATOR_ARGS := PREADD_SUB=$(PREADD_SUB)
+DSP_VERILATOR_ARGS += POSTADD_EN=$(POSTADD_EN)
+DSP_VERILATOR_ARGS += POSTADD_SUB=$(POSTADD_SUB)
+DSP_VERILATOR_ARGS += RESET_CYCLES=$(RESET_CYCLES)
+DSP_VERILATOR_ARGS += INFILE=$(INFILE_DSP)
+DSP_VERILATOR_ARGS += DUMPFILE=$(VCD_DSP)
 
 # -------------------------------
 # complex_mul_3dsp_file_tb settings
@@ -123,7 +123,7 @@ INFILE_STAGE ?= $(INPUT_DIR)/fixed_stage_stim.txt
 IVFLAGS_STAGE := $(IVFLAGS_COMMON)
 IVFLAGS_STAGE += -P $(TOP_STAGE).FFT_N=$(FFT_N)
 
-.PHONY: all dsp mul round clip twiddle butterfly stage run-all wave-all build-dsp run-dsp wave-dsp build-mul run-mul wave-mul build-round run-round wave-round build-clip run-clip wave-clip build-tw run-tw wave-tw build-butterfly run-butterfly wave-butterfly build-stage run-stage wave-stage run wave clean
+.PHONY: all dsp mul round clip twiddle butterfly stage run-all wave-all build-dsp build-dsp-one run-dsp run-dsp-one wave-dsp wave-dsp-one build-mul run-mul wave-mul build-round run-round wave-round build-clip run-clip wave-clip build-tw run-tw wave-tw build-butterfly run-butterfly wave-butterfly build-stage run-stage wave-stage run wave clean
 
 all: run-all
 
@@ -141,16 +141,32 @@ butterfly: run-butterfly
 
 stage: run-stage
 
-build-dsp:
-	mkdir -p $(BUILD_DIR)
-	$(IVERILOG) $(IVFLAGS_DSP) -o $(SIMV_DSP) $(SV_PKG) $(TB_DSP) $(RTL_DSP)
+build-dsp: build-dsp-one
 
-run-dsp: build-dsp
-	$(VVP) $(SIMV_DSP) +infile=$(INFILE_DSP)
+build-dsp-one:
+	$(MAKE) -C $(DPI_C_DSP_DIR) build $(DSP_VERILATOR_ARGS)
 
-wave-dsp: build-dsp
-	$(VVP) $(SIMV_DSP) +infile=$(INFILE_DSP) +dump +dumpfile=$(VCD_DSP)
-	@echo "VCD generated: $(VCD_DSP)"
+run-dsp:
+	@set -e; \
+	for preadd_sub in $(DSP_BOOL_VALUES); do \
+		for postadd_en in $(DSP_BOOL_VALUES); do \
+			for postadd_sub in $(DSP_BOOL_VALUES); do \
+				printf '%s\n' "Running $(TOP_DSP) with PREADD_SUB=$$preadd_sub POSTADD_EN=$$postadd_en POSTADD_SUB=$$postadd_sub"; \
+				$(MAKE) --no-print-directory run-dsp-one \
+					PREADD_SUB=$$preadd_sub \
+					POSTADD_EN=$$postadd_en \
+					POSTADD_SUB=$$postadd_sub; \
+			done; \
+		done; \
+	done
+
+run-dsp-one:
+	$(MAKE) -C $(DPI_C_DSP_DIR) run $(DSP_VERILATOR_ARGS)
+
+wave-dsp: wave-dsp-one
+
+wave-dsp-one:
+	$(MAKE) -C $(DPI_C_DSP_DIR) wave $(DSP_VERILATOR_ARGS)
 
 build-mul:
 	mkdir -p $(BUILD_DIR)
@@ -222,10 +238,11 @@ run-all: run-dsp run-mul run-round run-clip run-tw run-butterfly run-stage
 
 wave-all: wave-dsp wave-mul wave-round wave-clip wave-tw wave-butterfly wave-stage
 
-# Backward compatibility with old single-test flow.
+# Backward compatibility with old DSP flow.
 run: run-dsp
 
 wave: wave-dsp
 
 clean:
 	rm -rf $(BUILD_DIR)
+	$(MAKE) -C $(DPI_C_DSP_DIR) clean
