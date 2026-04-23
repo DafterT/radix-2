@@ -267,8 +267,6 @@ module complex_mul_3dsp_file_tb #(
         if (file_desc == 0)
             $fatal(1, "Cannot open input file: %0s", input_file);
 
-        $display("[%0t] Mode: drive_style=posedge_ff output_offset_cycles=%0d", $time, OUTPUT_OFFSET_CYCLES);
-
         repeat (RESET_CYCLES) @(posedge clk);
         rst = 1'b0;
 

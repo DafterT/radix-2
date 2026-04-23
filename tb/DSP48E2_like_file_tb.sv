@@ -317,7 +317,7 @@ module DSP48E2_like_file_tb #(
         if (file_desc == 0)
             $fatal(1, "Cannot open input file: %0s", input_file);
 
-        $display("[%0t] Mode: drive_style=posedge_ff preadd_sub=%0d postadd_en=%0d postadd_sub=%0d", $time, PREADD_SUB, POSTADD_EN, POSTADD_SUB);
+        $display("[%0t] Mode: preadd_sub=%0d postadd_en=%0d postadd_sub=%0d", $time, PREADD_SUB, POSTADD_EN, POSTADD_SUB);
 
         repeat (RESET_CYCLES) @(posedge clk);
         rst = 1'b0;
