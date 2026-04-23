@@ -43,6 +43,21 @@ MUL_VERILATOR_ARGS += INFILE=$(INFILE_MUL)
 MUL_VERILATOR_ARGS += DUMPFILE=$(VCD_MUL)
 
 # -------------------------------
+# radix2_fft64_dpi_tb settings
+# -------------------------------
+TOP_FFT64 := radix2_fft64_dpi_tb
+VCD_FFT64 ?= $(BUILD_DIR)/$(TOP_FFT64).vcd
+FRAMES ?= 32
+SEED ?= 1
+BACKOFF_DB ?= 12.0
+
+FFT64_VERILATOR_ARGS := TOP=$(TOP_FFT64)
+FFT64_VERILATOR_ARGS += FRAMES=$(FRAMES)
+FFT64_VERILATOR_ARGS += SEED=$(SEED)
+FFT64_VERILATOR_ARGS += BACKOFF_DB=$(BACKOFF_DB)
+FFT64_VERILATOR_ARGS += DUMPFILE=$(VCD_FFT64)
+
+# -------------------------------
 # convergent_rounding_tb settings
 # -------------------------------
 TOP_ROUND := convergent_rounding_tb
@@ -120,13 +135,15 @@ INFILE_STAGE ?= $(INPUT_DIR)/fixed_stage_stim.txt
 IVFLAGS_STAGE := $(IVFLAGS_COMMON)
 IVFLAGS_STAGE += -P $(TOP_STAGE).FFT_N=$(FFT_N)
 
-.PHONY: all dsp mul round clip twiddle butterfly stage run-all wave-all build-dsp build-dsp-one run-dsp run-dsp-one wave-dsp wave-dsp-one build-mul build-mul-one run-mul run-mul-one wave-mul wave-mul-one build-round run-round wave-round build-clip run-clip wave-clip build-tw run-tw wave-tw build-butterfly run-butterfly wave-butterfly build-stage run-stage wave-stage run wave clean
+.PHONY: all dsp mul fft64 round clip twiddle butterfly stage run-all wave-all build-dsp build-dsp-one run-dsp run-dsp-one wave-dsp wave-dsp-one build-mul build-mul-one run-mul run-mul-one wave-mul wave-mul-one build-fft64 build-fft64-one run-fft64 run-fft64-one wave-fft64 wave-fft64-one build-round run-round wave-round build-clip run-clip wave-clip build-tw run-tw wave-tw build-butterfly run-butterfly wave-butterfly build-stage run-stage wave-stage run wave clean
 
 all: run-all
 
 dsp: run-dsp
 
 mul: run-mul
+
+fft64: run-fft64
 
 round: run-round
 
@@ -179,6 +196,21 @@ wave-mul: wave-mul-one
 
 wave-mul-one:
 	$(MAKE) -C $(DPI_C_DSP_DIR) wave $(MUL_VERILATOR_ARGS)
+
+build-fft64: build-fft64-one
+
+build-fft64-one:
+	$(MAKE) -C $(DPI_C_DSP_DIR) build $(FFT64_VERILATOR_ARGS)
+
+run-fft64: run-fft64-one
+
+run-fft64-one:
+	$(MAKE) -C $(DPI_C_DSP_DIR) run $(FFT64_VERILATOR_ARGS)
+
+wave-fft64: wave-fft64-one
+
+wave-fft64-one:
+	$(MAKE) -C $(DPI_C_DSP_DIR) wave $(FFT64_VERILATOR_ARGS)
 
 build-round:
 	mkdir -p $(BUILD_DIR)
