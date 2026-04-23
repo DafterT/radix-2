@@ -28,7 +28,6 @@ module DSP48E2_like_file_tb #(
     } test_vec_t;
 
     localparam int OUTPUT_OFFSET_CYCLES = (POSTADD_EN != 0) ? 4 : 3;
-    localparam int CHECK_START_CYCLES = OUTPUT_OFFSET_CYCLES - 1;
 
     logic clk;
     logic rst;
@@ -39,6 +38,10 @@ module DSP48E2_like_file_tb #(
     logic signed [47:0] C;
     logic signed [47:0] Y;
 
+    logic signed [29:0] a_src;
+    logic signed [26:0] d_src;
+    logic signed [17:0] b_src;
+    logic signed [47:0] c_src_next;
     logic signed [47:0] c_src;
     logic signed [47:0] c_pipe0_q;
     logic signed [47:0] c_pipe1_q;
@@ -120,19 +123,19 @@ module DSP48E2_like_file_tb #(
 
     task automatic drive_vector(input test_vec_t vec);
         begin
-            A     <= vec.a;
-            D     <= vec.d;
-            B     <= vec.b;
-            c_src <= vec.c;
+            a_src     = vec.a;
+            d_src     = vec.d;
+            b_src     = vec.b;
+            c_src_next = vec.c;
         end
     endtask
 
     task automatic drive_zero_vector();
         begin
-            A     <= '0;
-            D     <= '0;
-            B     <= '0;
-            c_src <= '0;
+            a_src      = '0;
+            d_src      = '0;
+            b_src      = '0;
+            c_src_next = '0;
         end
     endtask
 
@@ -198,7 +201,7 @@ module DSP48E2_like_file_tb #(
         begin
             wait ((exp_queue.size() != 0) || drive_done);
 
-            repeat (CHECK_START_CYCLES) @(posedge clk);
+            repeat (OUTPUT_OFFSET_CYCLES) @(posedge clk);
 
             forever begin
                 @(posedge clk);
@@ -245,10 +248,36 @@ module DSP48E2_like_file_tb #(
 
     always_ff @(posedge clk) begin
         if (rst) begin
+            A <= '0;
+        end else begin
+            A <= a_src;
+        end
+    end
+
+    always_ff @(posedge clk) begin
+        if (rst) begin
+            D <= '0;
+        end else begin
+            D <= d_src;
+        end
+    end
+
+    always_ff @(posedge clk) begin
+        if (rst) begin
+            B <= '0;
+        end else begin
+            B <= b_src;
+        end
+    end
+
+    always_ff @(posedge clk) begin
+        if (rst) begin
+            c_src     <= '0;
             c_pipe0_q <= '0;
             c_pipe1_q <= '0;
             C         <= '0;
         end else begin
+            c_src     <= c_src_next;
             c_pipe0_q <= c_src;
             c_pipe1_q <= c_pipe0_q;
             C         <= c_pipe1_q;
@@ -272,6 +301,10 @@ module DSP48E2_like_file_tb #(
         D = '0;
         B = '0;
         C = '0;
+        a_src = '0;
+        d_src = '0;
+        b_src = '0;
+        c_src_next = '0;
         c_src = '0;
         c_pipe0_q = '0;
         c_pipe1_q = '0;
@@ -284,7 +317,7 @@ module DSP48E2_like_file_tb #(
         if (file_desc == 0)
             $fatal(1, "Cannot open input file: %0s", input_file);
 
-        $display("[%0t] Mode: preadd_sub=%0d postadd_en=%0d postadd_sub=%0d", $time, PREADD_SUB, POSTADD_EN, POSTADD_SUB);
+        $display("[%0t] Mode: drive_style=posedge_ff preadd_sub=%0d postadd_en=%0d postadd_sub=%0d", $time, PREADD_SUB, POSTADD_EN, POSTADD_SUB);
 
         repeat (RESET_CYCLES) @(posedge clk);
         rst = 1'b0;

@@ -4,11 +4,10 @@ import radix2_types_pkg::*;
 
 module complex_mul_3dsp_file_tb #(
     parameter int RESET_CYCLES = 4,
-    parameter int CLK_PERIOD_NS = 10,
-    parameter int OUTPUT_OFFSET_CYCLES = 4
+    parameter int CLK_PERIOD_NS = 10
 );
     localparam int HALF_CLK_PERIOD_NS = CLK_PERIOD_NS / 2;
-    localparam int CHECK_START_CYCLES = OUTPUT_OFFSET_CYCLES - 1;
+    localparam int OUTPUT_OFFSET_CYCLES = 4;
 
     import "DPI-C" function void complex_mul_3dsp_dpi_model(
         input int x_re,
@@ -166,16 +165,12 @@ module complex_mul_3dsp_file_tb #(
             forever begin
                 read_next_vector(vectors_count + 1, valid, vec);
 
-                if (valid)
-                    drive_vector(vec);
-                else
-                    drive_zero_vector();
-
                 @(posedge clk);
 
                 if (!valid)
                     break;
 
+                drive_vector(vec);
                 exp_queue.push_back(vec);
                 vectors_count = vec.id;
             end
@@ -183,8 +178,8 @@ module complex_mul_3dsp_file_tb #(
             drive_done = 1'b1;
 
             forever begin
-                drive_zero_vector();
                 @(posedge clk);
+                drive_zero_vector();
                 if (check_done)
                     return;
             end
@@ -197,7 +192,7 @@ module complex_mul_3dsp_file_tb #(
         begin
             wait ((exp_queue.size() != 0) || drive_done);
 
-            repeat (CHECK_START_CYCLES) @(posedge clk);
+            repeat (OUTPUT_OFFSET_CYCLES) @(posedge clk);
 
             forever begin
                 @(posedge clk);

@@ -17,7 +17,6 @@ PREADD_SUB ?= 0
 POSTADD_EN ?= 1
 POSTADD_SUB ?= 0
 RESET_CYCLES ?= 4
-OUTPUT_OFFSET_CYCLES ?= 4
 
 INFILE ?=
 DUMPFILE ?= $(BUILD_DIR)/$(TOP).vcd
@@ -47,7 +46,6 @@ DPI_WRAPPER_SRC := $(THIS_DIR)/complex_mul_3dsp_dpi.c
 MODEL_OBJ := $(OBJ_DIR)/complex_mul_3dsp_model.o
 DPI_WRAPPER_OBJ := $(OBJ_DIR)/complex_mul_3dsp_dpi.o
 VERILATOR_FLAGS += -GRESET_CYCLES=$(RESET_CYCLES)
-VERILATOR_FLAGS += -GOUTPUT_OFFSET_CYCLES=$(OUTPUT_OFFSET_CYCLES)
 RUN_ARGS := +infile=$(if $(INFILE),$(INFILE),$(TB_DIR)/input/input_complex_vectors.txt)
 else
 $(error Unsupported TOP '$(TOP)')
