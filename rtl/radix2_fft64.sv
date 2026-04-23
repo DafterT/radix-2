@@ -35,7 +35,7 @@ module radix2_fft64
             $fatal(1, "radix2_fft64: TDATA_W must be %0d", $bits(complex16_t));
     end
 
-    radix2_cu_test #(
+    radix2_cu #(
         .TDATA_W(TDATA_W)
     ) u_cu (
         .clk          (clk),

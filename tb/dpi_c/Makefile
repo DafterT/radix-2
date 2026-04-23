@@ -64,7 +64,7 @@ SV_SRC := $(SV_PKG) $(TB_SRC) \
 	$(ROOT_DIR)/rtl/dual_port_ram.sv \
 	$(ROOT_DIR)/rtl/fft_twiddle_rom.sv \
 	$(ROOT_DIR)/rtl/radix2_butterfly.sv \
-	$(ROOT_DIR)/rtl/radix2_cu_test.sv \
+	$(ROOT_DIR)/rtl/radix2_cu.sv \
 	$(ROOT_DIR)/rtl/radix2_fft64.sv \
 	$(ROOT_DIR)/rtl/shift_register_with_valid.sv \
 	$(ROOT_DIR)/rtl/symmetric_clip.sv

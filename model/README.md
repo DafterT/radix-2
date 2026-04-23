@@ -4,10 +4,6 @@
 
 - `build/`: исполняемые файлы и временные артефакты сборки из `model/Makefile`.
 - `complex_mul_3dsp/`: отдельная модель комплексного умножителя на 3 DSP и связанные с ней генераторы тестовых данных.
-- `stage/`: модель одного FFT stage.
-- `stage/fixed/`: fixed-point реализация stage в файлах `model_fixed.[ch]` и standalone-прогон `fixed_main.c`.
-- `stage/reference/`: double reference-реализация stage в файлах `model_double.[ch]` и standalone-прогон `double_main.c`.
-- `stage/tools/compare.c`: утилита сравнения fixed и double stage, включая SQNR.
 - `fft64/`: полная 64-точечная radix-2 FFT.
 - `fft64/fixed_sqrt2/`: fixed-point FFT64 в `model_fixed.[ch]`; fixed butterfly и twiddle-логика вынесены в `butterfly_fixed.[ch]`.
 - `fft64/reference/`: double reference FFT64 в `model_double.[ch]` и standalone-прогон `double_main.c`.
@@ -15,7 +11,7 @@
 - `fft64/tools/compare_fixed.c`: сравнение fixed FFT64 с double FFT64, включая backoff, среднюю/максимальную ошибку и SQNR.
 - `tools/`: прочие вспомогательные скрипты, например вывод данных twiddle ROM.
 
-Именование в `stage/` и `fft64/` теперь единообразное:
+Именование в `fft64/` и связанных helper-файлах единообразное:
 
 - `model_fixed.[ch]`: fixed-point модель.
 - `model_double.[ch]`: double/reference модель.
@@ -28,7 +24,4 @@
 - `make -C model fft`
 - `make -C model fft_compare`
 - `make -C model fft_fixed_compare`
-- `make -C model stage_fixed`
-- `make -C model stage_double`
-- `make -C model stage_compare`
 - `make -C model print_twiddle`

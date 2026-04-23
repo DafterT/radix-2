@@ -112,30 +112,7 @@ VCD_BUTTERFLY ?= $(BUILD_DIR)/$(TOP_BUTTERFLY).vcd
 
 IVFLAGS_BUTTERFLY := $(IVFLAGS_COMMON)
 
-# -------------------------------
-# radix2_fft_stage_tb settings
-# -------------------------------
-TOP_STAGE := radix2_fft_stage_tb
-TB_STAGE := $(THIS_DIR)/$(TOP_STAGE).sv
-RTL_STAGE := $(ROOT_DIR)/rtl/DSP48E2_like.sv \
-             $(ROOT_DIR)/rtl/complex_round_clip_q22_23_to_q16_0.sv \
-             $(ROOT_DIR)/rtl/complex_mul_3dsp.sv \
-             $(ROOT_DIR)/rtl/convergent_rounding.sv \
-             $(ROOT_DIR)/rtl/fft_twiddle_rom.sv \
-             $(ROOT_DIR)/rtl/radix2_butterfly.sv \
-             $(ROOT_DIR)/rtl/radix2_cu.sv \
-             $(ROOT_DIR)/rtl/radix2_fft_stage.sv \
-             $(ROOT_DIR)/rtl/shift_register.sv \
-             $(ROOT_DIR)/rtl/shift_register_with_valid.sv \
-             $(ROOT_DIR)/rtl/symmetric_clip.sv
-SIMV_STAGE := $(BUILD_DIR)/$(TOP_STAGE).vvp
-VCD_STAGE ?= $(BUILD_DIR)/$(TOP_STAGE).vcd
-INFILE_STAGE ?= $(INPUT_DIR)/fixed_stage_stim.txt
-
-IVFLAGS_STAGE := $(IVFLAGS_COMMON)
-IVFLAGS_STAGE += -P $(TOP_STAGE).FFT_N=$(FFT_N)
-
-.PHONY: all dsp mul fft64 round clip twiddle butterfly stage run-all wave-all build-dsp build-dsp-one run-dsp run-dsp-one wave-dsp wave-dsp-one build-mul build-mul-one run-mul run-mul-one wave-mul wave-mul-one build-fft64 build-fft64-one run-fft64 run-fft64-one wave-fft64 wave-fft64-one build-round run-round wave-round build-clip run-clip wave-clip build-tw run-tw wave-tw build-butterfly run-butterfly wave-butterfly build-stage run-stage wave-stage run wave clean
+.PHONY: all dsp mul fft64 round clip twiddle butterfly run-all wave-all build-dsp build-dsp-one run-dsp run-dsp-one wave-dsp wave-dsp-one build-mul build-mul-one run-mul run-mul-one wave-mul wave-mul-one build-fft64 build-fft64-one run-fft64 run-fft64-one wave-fft64 wave-fft64-one build-round run-round wave-round build-clip run-clip wave-clip build-tw run-tw wave-tw build-butterfly run-butterfly wave-butterfly run wave clean
 
 all: run-all
 
@@ -152,8 +129,6 @@ clip: run-clip
 twiddle: run-tw
 
 butterfly: run-butterfly
-
-stage: run-stage
 
 build-dsp: build-dsp-one
 
@@ -256,20 +231,9 @@ wave-butterfly: build-butterfly
 	$(VVP) $(SIMV_BUTTERFLY) +dump +dumpfile=$(VCD_BUTTERFLY)
 	@echo "VCD generated: $(VCD_BUTTERFLY)"
 
-build-stage:
-	mkdir -p $(BUILD_DIR)
-	$(IVERILOG) $(IVFLAGS_STAGE) -o $(SIMV_STAGE) $(SV_PKG) $(TB_STAGE) $(RTL_STAGE)
+run-all: run-dsp run-mul run-fft64 run-round run-clip run-tw run-butterfly
 
-run-stage: build-stage
-	$(VVP) $(SIMV_STAGE) +infile=$(INFILE_STAGE)
-
-wave-stage: build-stage
-	$(VVP) $(SIMV_STAGE) +infile=$(INFILE_STAGE) +dump +dumpfile=$(VCD_STAGE)
-	@echo "VCD generated: $(VCD_STAGE)"
-
-run-all: run-dsp run-mul run-round run-clip run-tw run-butterfly run-stage
-
-wave-all: wave-dsp wave-mul wave-round wave-clip wave-tw wave-butterfly wave-stage
+wave-all: wave-dsp wave-mul wave-fft64 wave-round wave-clip wave-tw wave-butterfly
 
 # Backward compatibility with old DSP flow.
 run: run-dsp
