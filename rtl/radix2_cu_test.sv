@@ -37,7 +37,6 @@ module radix2_cu_test
         ST_CAPTURE,
         ST_STAGE_RUN,
         ST_STAGE_DRAIN,
-        ST_OUTPUT_PRIME,
         ST_OUTPUT_RUN
     } state_t;
 
@@ -404,13 +403,16 @@ module radix2_cu_test
                     if (stage_index_q == LAST_STAGE_INDEX) begin
                         out_issue_count_d    = '0;
                         out_sent_count_d     = '0;
-                        out_read_pending_d   = 1'b0;
+                        out_read_pending_d   = 1'b1;
                         out_pending_index_d  = '0;
                         out_main_valid_d     = 1'b0;
                         out_main_data_d      = '0;
                         out_prefetch_valid_d = 1'b0;
                         out_prefetch_data_d  = '0;
-                        state_d              = ST_OUTPUT_PRIME;
+                        bank0_addr_b         = '0;
+                        bank1_addr_b         = '0;
+                        out_issue_count_d    = {{INDEX_W{1'b0}}, 1'b1};
+                        state_d              = ST_OUTPUT_RUN;
                     end else begin
                         stage_index_d       = stage_index_q + 1'b1;
                         stage_block_base_d  = '0;
@@ -418,15 +420,6 @@ module radix2_cu_test
                         state_d             = ST_STAGE_RUN;
                     end
                 end
-            end
-
-            ST_OUTPUT_PRIME: begin
-                bank0_addr_b        = out_issue_addr;
-                bank1_addr_b        = out_issue_addr;
-                out_pending_index_d = out_issue_index;
-                out_read_pending_d  = 1'b1;
-                out_issue_count_d   = out_issue_count_q + 1'b1;
-                state_d             = ST_OUTPUT_RUN;
             end
 
             ST_OUTPUT_RUN: begin
