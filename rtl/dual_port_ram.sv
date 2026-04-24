@@ -8,14 +8,12 @@ module dual_port_ram
 )
 (
     input  logic               clk,
-    input  logic               we_a,
-    input  logic [ADDR_W-1:0]  addr_a,
-    input  logic [WIDTH-1:0]   din_a,
-    output logic [WIDTH-1:0]   dout_a,
-    input  logic               we_b,
-    input  logic [ADDR_W-1:0]  addr_b,
-    input  logic [WIDTH-1:0]   din_b,
-    output logic [WIDTH-1:0]   dout_b
+    input  logic               we,
+    input  logic [ADDR_W-1:0]  waddr,
+    input  logic [WIDTH-1:0]   din,
+    input  logic               re,
+    input  logic [ADDR_W-1:0]  raddr,
+    output logic [WIDTH-1:0]   dout
 );
 
     initial begin
@@ -26,17 +24,16 @@ module dual_port_ram
             $fatal(1, "dual_port_ram: WIDTH must be > 0");
     end
 
-    logic [WIDTH-1:0] mem [0:DEPTH-1];
+    (* ram_style = "block" *) logic [WIDTH-1:0] mem [0:DEPTH-1];
 
     always_ff @(posedge clk) begin
-        if (we_a)
-            mem[addr_a] <= din_a;
+        if (we)
+            mem[waddr] <= din;
+    end
 
-        if (we_b)
-            mem[addr_b] <= din_b;
-
-        dout_a <= mem[addr_a];
-        dout_b <= mem[addr_b];
+    always_ff @(posedge clk) begin
+        if (re)
+            dout <= mem[raddr];
     end
 
 endmodule

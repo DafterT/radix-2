@@ -120,10 +120,12 @@ module radix2_cu
     logic                   bank0_we_a;
     logic [ADDR_W-1:0]      bank0_addr_a;
     logic [TDATA_W-1:0]     bank0_din_a;
+    logic                   bank0_re_b;
     logic [ADDR_W-1:0]      bank0_addr_b;
     logic                   bank1_we_a;
     logic [ADDR_W-1:0]      bank1_addr_a;
     logic [TDATA_W-1:0]     bank1_din_a;
+    logic                   bank1_re_b;
     logic [ADDR_W-1:0]      bank1_addr_b;
     logic [WRITEBACK_META_W-1:0] writeback_meta_bits;
     writeback_meta_t        writeback_meta;
@@ -220,30 +222,26 @@ module radix2_cu
         .DEPTH(DEPTH),
         .WIDTH(TDATA_W)
     ) u_bank0_ram (
-        .clk   (clk),
-        .we_a  (bank0_we_a),
-        .addr_a(bank0_addr_a),
-        .din_a (bank0_din_a),
-        .dout_a(),
-        .we_b  (1'b0),
-        .addr_b(bank0_addr_b),
-        .din_b ('0),
-        .dout_b(bank0_dout_b)
+        .clk  (clk),
+        .we   (bank0_we_a),
+        .waddr(bank0_addr_a),
+        .din  (bank0_din_a),
+        .re   (bank0_re_b),
+        .raddr(bank0_addr_b),
+        .dout (bank0_dout_b)
     );
 
     dual_port_ram #(
         .DEPTH(DEPTH),
         .WIDTH(TDATA_W)
     ) u_bank1_ram (
-        .clk   (clk),
-        .we_a  (bank1_we_a),
-        .addr_a(bank1_addr_a),
-        .din_a (bank1_din_a),
-        .dout_a(),
-        .we_b  (1'b0),
-        .addr_b(bank1_addr_b),
-        .din_b ('0),
-        .dout_b(bank1_dout_b)
+        .clk  (clk),
+        .we   (bank1_we_a),
+        .waddr(bank1_addr_a),
+        .din  (bank1_din_a),
+        .re   (bank1_re_b),
+        .raddr(bank1_addr_b),
+        .dout (bank1_dout_b)
     );
 
     always_ff @(posedge clk) begin
@@ -311,11 +309,13 @@ module radix2_cu
         bank0_we_a   = 1'b0;
         bank0_addr_a = '0;
         bank0_din_a  = '0;
+        bank0_re_b   = 1'b0;
         bank0_addr_b = '0;
 
         bank1_we_a   = 1'b0;
         bank1_addr_a = '0;
         bank1_din_a  = '0;
+        bank1_re_b   = 1'b0;
         bank1_addr_b = '0;
 
         out_main_valid_tmp     = out_main_valid_q;
@@ -378,10 +378,14 @@ module radix2_cu
                 read_meta_d.bottom_addr = stage_bottom_addr;
 
                 if (stage_top_bank) begin
+                    bank1_re_b   = 1'b1;
                     bank1_addr_b = stage_top_addr;
+                    bank0_re_b   = 1'b1;
                     bank0_addr_b = stage_bottom_addr;
                 end else begin
+                    bank0_re_b   = 1'b1;
                     bank0_addr_b = stage_top_addr;
+                    bank1_re_b   = 1'b1;
                     bank1_addr_b = stage_bottom_addr;
                 end
 
@@ -409,7 +413,9 @@ module radix2_cu
                         out_main_data_d      = '0;
                         out_prefetch_valid_d = 1'b0;
                         out_prefetch_data_d  = '0;
+                        bank0_re_b           = 1'b1;
                         bank0_addr_b         = '0;
+                        bank1_re_b           = 1'b1;
                         bank1_addr_b         = '0;
                         out_issue_count_d    = {{INDEX_W{1'b0}}, 1'b1};
                         state_d              = ST_OUTPUT_RUN;
@@ -456,7 +462,9 @@ module radix2_cu
                 out_prefetch_valid_d = out_prefetch_valid_tmp;
 
                 if ((out_issue_count_q < FFT_N) && !(out_main_valid_tmp && out_prefetch_valid_tmp)) begin
+                    bank0_re_b          = 1'b1;
                     bank0_addr_b        = out_issue_addr;
+                    bank1_re_b          = 1'b1;
                     bank1_addr_b        = out_issue_addr;
                     out_pending_index_d = out_issue_index;
                     out_read_pending_d  = 1'b1;
