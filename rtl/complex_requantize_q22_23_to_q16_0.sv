@@ -1,8 +1,8 @@
 `timescale 1ns/1ps
 
-import radix2_types_pkg::*;
+import complex_fixed_pkg::*;
 
-module complex_round_clip_q22_23_to_q16_0 (
+module complex_requantize_q22_23_to_q16_0 (
     input  logic               clk,
     input  logic               rst,
     input  logic signed [44:0] re_i,
@@ -43,7 +43,7 @@ module complex_round_clip_q22_23_to_q16_0 (
         end
     end
 
-    symmetric_clip #(
+    symmetric_saturate #(
         .IWID(22),
         .OWID(16)
     ) u_clip_re (
@@ -51,7 +51,7 @@ module complex_round_clip_q22_23_to_q16_0 (
         .o_data(re_q16_0)
     );
 
-    symmetric_clip #(
+    symmetric_saturate #(
         .IWID(22),
         .OWID(16)
     ) u_clip_im (
@@ -59,6 +59,6 @@ module complex_round_clip_q22_23_to_q16_0 (
         .o_data(im_q16_0)
     );
 
-    assign o_data = radix2_types_pkg::comp_t_to_complex16(re_q16_0, im_q16_0);
+    assign o_data = complex_fixed_pkg::comp_t_to_complex16(re_q16_0, im_q16_0);
 
 endmodule

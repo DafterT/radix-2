@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
 
-module dual_port_ram
+module simple_dual_port_ram
 #(
     parameter int DEPTH = 64,
     parameter int WIDTH = 16,
@@ -18,10 +18,10 @@ module dual_port_ram
 
     initial begin
         if (DEPTH <= 0)
-            $fatal(1, "dual_port_ram: DEPTH must be > 0");
+            $fatal(1, "simple_dual_port_ram: DEPTH must be > 0");
 
         if (WIDTH <= 0)
-            $fatal(1, "dual_port_ram: WIDTH must be > 0");
+            $fatal(1, "simple_dual_port_ram: WIDTH must be > 0");
     end
 
     (* ram_style = "block" *) logic [WIDTH-1:0] mem [0:DEPTH-1];

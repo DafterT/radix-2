@@ -1,8 +1,8 @@
 `timescale 1ns/1ps
 
-import radix2_types_pkg::*;
+import complex_fixed_pkg::*;
 
-module radix_2_butterfly_tb #(
+module radix2_butterfly_tb #(
     parameter int RESET_CYCLES           = 4,
     parameter int CLK_PERIOD_NS          = 10,
     parameter int NUM_VECTORS            = 4
@@ -107,21 +107,21 @@ module radix_2_butterfly_tb #(
             end
 
             // Edit vectors here.
-            stim_a[0] = radix2_types_pkg::comp_t_to_complex16(16'sd10, 16'sd2);
-            stim_b[0] = radix2_types_pkg::comp_t_to_complex16(16'sd3, 16'sd4);
-            stim_W[0] = radix2_types_pkg::comp_t_to_complex16(16'sh4000, 16'sd0); //  1.0 + j0.0
+            stim_a[0] = complex_fixed_pkg::comp_t_to_complex16(16'sd10, 16'sd2);
+            stim_b[0] = complex_fixed_pkg::comp_t_to_complex16(16'sd3, 16'sd4);
+            stim_W[0] = complex_fixed_pkg::comp_t_to_complex16(16'sh4000, 16'sd0); //  1.0 + j0.0
 
-            stim_a[1] = radix2_types_pkg::comp_t_to_complex16(16'sd7, -16'sd3);
-            stim_b[1] = radix2_types_pkg::comp_t_to_complex16(-16'sd2, 16'sd1);
-            stim_W[1] = radix2_types_pkg::comp_t_to_complex16(16'sd0, 16'sh4000); //  0.0 + j1.0
+            stim_a[1] = complex_fixed_pkg::comp_t_to_complex16(16'sd7, -16'sd3);
+            stim_b[1] = complex_fixed_pkg::comp_t_to_complex16(-16'sd2, 16'sd1);
+            stim_W[1] = complex_fixed_pkg::comp_t_to_complex16(16'sd0, 16'sh4000); //  0.0 + j1.0
 
-            stim_a[2] = radix2_types_pkg::comp_t_to_complex16(-16'sd8, 16'sd5);
-            stim_b[2] = radix2_types_pkg::comp_t_to_complex16(16'sd2, -16'sd6);
-            stim_W[2] = radix2_types_pkg::comp_t_to_complex16(16'sh2000, 16'sd0); //  0.5 + j0.0
+            stim_a[2] = complex_fixed_pkg::comp_t_to_complex16(-16'sd8, 16'sd5);
+            stim_b[2] = complex_fixed_pkg::comp_t_to_complex16(16'sd2, -16'sd6);
+            stim_W[2] = complex_fixed_pkg::comp_t_to_complex16(16'sh2000, 16'sd0); //  0.5 + j0.0
 
-            stim_a[3] = radix2_types_pkg::comp_t_to_complex16(-16'sd1, -16'sd1);
-            stim_b[3] = radix2_types_pkg::comp_t_to_complex16(16'sd2, 16'sd2);
-            stim_W[3] = radix2_types_pkg::comp_t_to_complex16(16'sd0, -16'sh4000); //  0.0 - j1.0
+            stim_a[3] = complex_fixed_pkg::comp_t_to_complex16(-16'sd1, -16'sd1);
+            stim_b[3] = complex_fixed_pkg::comp_t_to_complex16(16'sd2, 16'sd2);
+            stim_W[3] = complex_fixed_pkg::comp_t_to_complex16(16'sd0, -16'sh4000); //  0.0 - j1.0
         end
     endtask
 
@@ -142,11 +142,11 @@ module radix_2_butterfly_tb #(
 
     initial begin
         if (!$value$plusargs("dumpfile=%s", dumpfile))
-            dumpfile = "tb/build/radix_2_butterfly_tb.vcd";
+            dumpfile = "tb/build/radix2_butterfly_tb.vcd";
 
         if ($test$plusargs("dump")) begin
             $dumpfile(dumpfile);
-            $dumpvars(0, radix_2_butterfly_tb);
+            $dumpvars(0, radix2_butterfly_tb);
             $display("[%0t] VCD enabled: %0s", $time, dumpfile);
         end
     end

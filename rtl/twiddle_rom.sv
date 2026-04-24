@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
 
-module fft_twiddle_rom
+module twiddle_rom
 #(
     parameter  int FFT_N = 64,
     parameter  int TW_W  = 16,
@@ -19,13 +19,13 @@ module fft_twiddle_rom
     //--------------------------------------------------------------------------
     initial begin
         if (FFT_N < 2)
-            $fatal(1, "fft_twiddle_rom: FFT_N must be >= 2");
+            $fatal(1, "twiddle_rom: FFT_N must be >= 2");
 
         if ((FFT_N & (FFT_N - 1)) != 0)
-            $fatal(1, "fft_twiddle_rom: FFT_N must be power of two");
+            $fatal(1, "twiddle_rom: FFT_N must be power of two");
 
         if (TW_W < 2)
-            $fatal(1, "fft_twiddle_rom: TW_W must be >= 2");
+            $fatal(1, "twiddle_rom: TW_W must be >= 2");
     end
 
     localparam int  FRAC_BITS = TW_W - 2;

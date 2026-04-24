@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-long long dsp48e2_like_dpi_model(
+long long dsp48e2_slice_model_dpi_model(
     svBit preadd_sub,
     svBit postadd_en,
     svBit postadd_sub,

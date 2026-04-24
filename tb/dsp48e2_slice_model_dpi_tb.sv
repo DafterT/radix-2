@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
 
-module DSP48E2_like_file_tb #(
+module dsp48e2_slice_model_dpi_tb #(
     parameter int PREADD_SUB = 0,
     parameter int POSTADD_EN = 0,
     parameter int POSTADD_SUB = 0
@@ -9,7 +9,7 @@ module DSP48E2_like_file_tb #(
     parameter int CLK_PERIOD_NS = 10;
     localparam int HALF_CLK_PERIOD_NS = CLK_PERIOD_NS / 2;
 
-    import "DPI-C" function longint dsp48e2_like_dpi_model(
+    import "DPI-C" function longint dsp48e2_slice_model_dpi_model(
         input bit preadd_sub,
         input bit postadd_en,
         input bit postadd_sub,
@@ -91,7 +91,7 @@ module DSP48E2_like_file_tb #(
     function automatic logic signed [47:0] calc_expected_y(input test_vec_t vec);
         longint signed model_y;
         begin
-            model_y = dsp48e2_like_dpi_model(
+            model_y = dsp48e2_slice_model_dpi_model(
                 (PREADD_SUB != 0),
                 (POSTADD_EN != 0),
                 (POSTADD_SUB != 0),
@@ -224,7 +224,7 @@ module DSP48E2_like_file_tb #(
         end
     endtask
 
-    DSP48E2_like #(
+    dsp48e2_slice_model #(
         .PREADD_SUB (PREADD_SUB != 0),
         .POSTADD_EN (POSTADD_EN != 0),
         .POSTADD_SUB(POSTADD_SUB != 0)
@@ -286,14 +286,14 @@ module DSP48E2_like_file_tb #(
 
     initial begin
         if (!$value$plusargs("dumpfile=%s", dumpfile))
-            dumpfile = "../build/DSP48E2_like_file_tb.vcd";
+            dumpfile = "../build/dsp48e2_slice_model_dpi_tb.vcd";
 
         if (!$value$plusargs("infile=%s", input_file))
             input_file = "../input/input_vectors.txt";
 
         if ($test$plusargs("dump")) begin
             $dumpfile(dumpfile);
-            $dumpvars(0, DSP48E2_like_file_tb);
+            $dumpvars(0, dsp48e2_slice_model_dpi_tb);
         end
 
         rst = 1'b1;
@@ -332,7 +332,7 @@ module DSP48E2_like_file_tb #(
         $display("DONE: vectors=%0d fails=%0d", vectors_count, fails_count);
 
         if (fails_count != 0)
-            $fatal(1, "DSP48E2_like_file_tb: FAILED");
+            $fatal(1, "dsp48e2_slice_model_dpi_tb: FAILED");
 
         $finish;
     end

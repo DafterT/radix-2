@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
 
-package radix2_types_pkg;
+package complex_fixed_pkg;
 
     typedef logic signed [15:0] complex16_comp_t;
     typedef logic signed [32:0] complex33_comp_t;

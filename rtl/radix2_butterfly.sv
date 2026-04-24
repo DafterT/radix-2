@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
 
-import radix2_types_pkg::*;
+import complex_fixed_pkg::*;
 
 module radix2_butterfly (
     input  logic       clk,
@@ -86,7 +86,7 @@ module radix2_butterfly (
         end
     endfunction
 
-    shift_register_with_valid #(
+    delay_line_with_valid #(
         .WIDTH(A_WIDTH),
         .DEPTH(MUL_LATENCY_CYCLES)
     ) u_a_delay (
@@ -119,7 +119,7 @@ module radix2_butterfly (
     assign bw_re_dsp_a  = sign_extend_27_to_30(bw_re_dsp_in);
     assign bw_im_dsp_a  = sign_extend_27_to_30(bw_im_dsp_in);
 
-    DSP48E2_like #(
+    dsp48e2_slice_model #(
         .PREADD_SUB (1'b0),
         .POSTADD_EN (1'b0),
         .POSTADD_SUB(1'b0)
@@ -133,7 +133,7 @@ module radix2_butterfly (
         .Y  (a_out_re_dsp_raw)
     );
 
-    DSP48E2_like #(
+    dsp48e2_slice_model #(
         .PREADD_SUB (1'b0),
         .POSTADD_EN (1'b0),
         .POSTADD_SUB(1'b0)
@@ -147,7 +147,7 @@ module radix2_butterfly (
         .Y  (a_out_im_dsp_raw)
     );
 
-    DSP48E2_like #(
+    dsp48e2_slice_model #(
         .PREADD_SUB (1'b1),
         .POSTADD_EN (1'b0),
         .POSTADD_SUB(1'b0)
@@ -161,7 +161,7 @@ module radix2_butterfly (
         .Y  (b_out_re_dsp_raw)
     );
 
-    DSP48E2_like #(
+    dsp48e2_slice_model #(
         .PREADD_SUB (1'b1),
         .POSTADD_EN (1'b0),
         .POSTADD_SUB(1'b0)
@@ -180,7 +180,7 @@ module radix2_butterfly (
     assign b_out_re_q22_23 = $signed(b_out_re_dsp_raw[44:0]);
     assign b_out_im_q22_23 = $signed(b_out_im_dsp_raw[44:0]);
 
-    complex_round_clip_q22_23_to_q16_0 u_a_out_post (
+    complex_requantize_q22_23_to_q16_0 u_a_out_post (
         .clk (clk),
         .rst (rst),
         .re_i(a_out_re_q22_23),
@@ -188,7 +188,7 @@ module radix2_butterfly (
         .o_data(a_out_q16_0)
     );
 
-    complex_round_clip_q22_23_to_q16_0 u_b_out_post (
+    complex_requantize_q22_23_to_q16_0 u_b_out_post (
         .clk (clk),
         .rst (rst),
         .re_i(b_out_re_q22_23),

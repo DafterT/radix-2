@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
 
-import radix2_types_pkg::*;
+import complex_fixed_pkg::*;
 
 module complex_mul_3dsp (
     input  logic            clk,
@@ -32,7 +32,7 @@ module complex_mul_3dsp (
         sign_extend_to_18 = $signed({{2{v[15]}}, v});
     endfunction
 
-    DSP48E2_like #(
+    dsp48e2_slice_model #(
         .PREADD_SUB (1'b0),
         .POSTADD_EN (1'b0),
         .POSTADD_SUB(1'b0)
@@ -46,7 +46,7 @@ module complex_mul_3dsp (
         .Y  (m0)
     );
 
-    DSP48E2_like #(
+    dsp48e2_slice_model #(
         .PREADD_SUB (1'b0),
         .POSTADD_EN (1'b1),
         .POSTADD_SUB(1'b1)
@@ -60,7 +60,7 @@ module complex_mul_3dsp (
         .Y  (m1)
     );
 
-    DSP48E2_like #(
+    dsp48e2_slice_model #(
         .PREADD_SUB (1'b1),
         .POSTADD_EN (1'b1),
         .POSTADD_SUB(1'b0)
@@ -74,7 +74,7 @@ module complex_mul_3dsp (
         .Y  (m2)
     );
 
-    assign out = radix2_types_pkg::comp_t_to_complex33(
+    assign out = complex_fixed_pkg::comp_t_to_complex33(
         $signed(m1[OUT_W-1:0]),
         $signed(m2[OUT_W-1:0])
     );

@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
 
-module shift_register_with_valid
+module delay_line_with_valid
 #(
     parameter int WIDTH = 8,
     parameter int DEPTH = 8
@@ -21,10 +21,10 @@ module shift_register_with_valid
 
     initial begin
         if (WIDTH <= 0)
-            $fatal(1, "shift_register_with_valid: WIDTH must be > 0");
+            $fatal(1, "delay_line_with_valid: WIDTH must be > 0");
 
         if (DEPTH <= 0)
-            $fatal(1, "shift_register_with_valid: DEPTH must be > 0");
+            $fatal(1, "delay_line_with_valid: DEPTH must be > 0");
     end
 
     always_ff @(posedge clk) begin

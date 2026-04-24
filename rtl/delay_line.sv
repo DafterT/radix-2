@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
 
-module shift_register
+module delay_line
 #(
     parameter int WIDTH = 8,
     parameter int DEPTH = 8
@@ -14,10 +14,10 @@ module shift_register
 
     initial begin
         if (WIDTH <= 0)
-            $fatal(1, "shift_register: WIDTH must be > 0");
+            $fatal(1, "delay_line: WIDTH must be > 0");
 
         if (DEPTH <= 0)
-            $fatal(1, "shift_register: DEPTH must be > 0");
+            $fatal(1, "delay_line: DEPTH must be > 0");
     end
 
     logic [WIDTH - 1:0] data_q [0:DEPTH - 1];

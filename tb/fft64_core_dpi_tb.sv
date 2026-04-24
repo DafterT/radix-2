@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
 
-module radix2_fft64_dpi_tb;
+module fft64_core_dpi_tb;
     parameter int CLK_PERIOD_NS = 10;
     parameter int RESET_CYCLES = 4;
 
@@ -12,7 +12,7 @@ module radix2_fft64_dpi_tb;
     localparam int DEFAULT_SEED = 1;
     localparam real DEFAULT_BACKOFF_DB = 12.0;
 
-    import "DPI-C" function void radix2_fft64_dpi_generate_frame(
+    import "DPI-C" function void fft64_core_dpi_generate_frame(
         input int seed,
         input int frame_index,
         input real backoff_db,
@@ -20,7 +20,7 @@ module radix2_fft64_dpi_tb;
         output shortint im[]
     );
 
-    import "DPI-C" function void radix2_fft64_dpi_model_frame(
+    import "DPI-C" function void fft64_core_dpi_model_frame(
         input shortint in_re[],
         input shortint in_im[],
         output shortint out_re[],
@@ -103,7 +103,7 @@ module radix2_fft64_dpi_tb;
         output shortint frame_im[0:FFT_N-1]
     );
         begin
-            radix2_fft64_dpi_generate_frame(seed, frame_id, backoff_db, frame_re, frame_im);
+            fft64_core_dpi_generate_frame(seed, frame_id, backoff_db, frame_re, frame_im);
         end
     endtask
 
@@ -114,7 +114,7 @@ module radix2_fft64_dpi_tb;
         output shortint out_im[0:FFT_N-1]
     );
         begin
-            radix2_fft64_dpi_model_frame(in_re, in_im, out_re, out_im);
+            fft64_core_dpi_model_frame(in_re, in_im, out_re, out_im);
         end
     endtask
 
@@ -238,7 +238,7 @@ module radix2_fft64_dpi_tb;
         end
     endtask
 
-    radix2_fft64 #(
+    fft64_core #(
         .TDATA_W(TDATA_W)
     ) dut (
         .clk          (clk),
@@ -258,12 +258,12 @@ module radix2_fft64_dpi_tb;
 
     initial begin
         repeat (WATCHDOG_CYCLES) @(posedge clk);
-        $fatal(1, "radix2_fft64_dpi_tb: TIMEOUT");
+        $fatal(1, "fft64_core_dpi_tb: TIMEOUT");
     end
 
     initial begin
         if (!$value$plusargs("dumpfile=%s", dumpfile))
-            dumpfile = "../build/radix2_fft64_dpi_tb.vcd";
+            dumpfile = "../build/fft64_core_dpi_tb.vcd";
 
         if (!$value$plusargs("frames=%d", frames_limit))
             frames_limit = DEFAULT_FRAMES;
@@ -275,11 +275,11 @@ module radix2_fft64_dpi_tb;
             backoff_db = DEFAULT_BACKOFF_DB;
 
         if (frames_limit <= 0)
-            $fatal(1, "radix2_fft64_dpi_tb: frames must be > 0");
+            $fatal(1, "fft64_core_dpi_tb: frames must be > 0");
 
         if ($test$plusargs("dump")) begin
             $dumpfile(dumpfile);
-            $dumpvars(0, radix2_fft64_dpi_tb);
+            $dumpvars(0, fft64_core_dpi_tb);
         end
 
         rst = 1'b1;
@@ -310,7 +310,7 @@ module radix2_fft64_dpi_tb;
         $display("DONE: frames=%0d fails=%0d", frames_count, fails_count);
 
         if (fails_count != 0)
-            $fatal(1, "radix2_fft64_dpi_tb: FAILED");
+            $fatal(1, "fft64_core_dpi_tb: FAILED");
 
         $finish;
     end

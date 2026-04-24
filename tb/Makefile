@@ -7,12 +7,12 @@ ROOT_DIR := $(abspath $(THIS_DIR)/..)
 BUILD_DIR ?= $(THIS_DIR)/build
 INPUT_DIR ?= $(THIS_DIR)/input
 IVFLAGS_COMMON := -g2012 -Wall
-SV_PKG := $(ROOT_DIR)/rtl/radix2_types_pkg.sv
+SV_PKG := $(ROOT_DIR)/rtl/complex_fixed_pkg.sv
 
 # -----------------------------
-# DSP48E2_like_file_tb settings
+# dsp48e2_slice_model_dpi_tb settings
 # -----------------------------
-TOP_DSP := DSP48E2_like_file_tb
+TOP_DSP := dsp48e2_slice_model_dpi_tb
 DPI_C_DSP_DIR := $(THIS_DIR)/dpi_c
 VCD_DSP ?= $(BUILD_DIR)/$(TOP_DSP).vcd
 INFILE_DSP ?= $(INPUT_DIR)/input_vectors.txt
@@ -31,9 +31,9 @@ DSP_VERILATOR_ARGS += INFILE=$(INFILE_DSP)
 DSP_VERILATOR_ARGS += DUMPFILE=$(VCD_DSP)
 
 # -------------------------------
-# complex_mul_3dsp_file_tb settings
+# complex_mul_3dsp_dpi_tb settings
 # -------------------------------
-TOP_MUL := complex_mul_3dsp_file_tb
+TOP_MUL := complex_mul_3dsp_dpi_tb
 VCD_MUL ?= $(BUILD_DIR)/$(TOP_MUL).vcd
 INFILE_MUL ?= $(INPUT_DIR)/input_complex_vectors.txt
 
@@ -43,9 +43,9 @@ MUL_VERILATOR_ARGS += INFILE=$(INFILE_MUL)
 MUL_VERILATOR_ARGS += DUMPFILE=$(VCD_MUL)
 
 # -------------------------------
-# radix2_fft64_dpi_tb settings
+# fft64_core_dpi_tb settings
 # -------------------------------
-TOP_FFT64 := radix2_fft64_dpi_tb
+TOP_FFT64 := fft64_core_dpi_tb
 VCD_FFT64 ?= $(BUILD_DIR)/$(TOP_FFT64).vcd
 FRAMES ?= 32
 SEED ?= 1
@@ -69,22 +69,22 @@ VCD_ROUND ?= $(BUILD_DIR)/$(TOP_ROUND).vcd
 IVFLAGS_ROUND := $(IVFLAGS_COMMON)
 
 # -------------------------------
-# symmetric_clip_tb settings
+# symmetric_saturate_tb settings
 # -------------------------------
-TOP_CLIP := symmetric_clip_tb
+TOP_CLIP := symmetric_saturate_tb
 TB_CLIP := $(THIS_DIR)/$(TOP_CLIP).sv
-RTL_CLIP := $(ROOT_DIR)/rtl/symmetric_clip.sv
+RTL_CLIP := $(ROOT_DIR)/rtl/symmetric_saturate.sv
 SIMV_CLIP := $(BUILD_DIR)/$(TOP_CLIP).vvp
 VCD_CLIP ?= $(BUILD_DIR)/$(TOP_CLIP).vcd
 
 IVFLAGS_CLIP := $(IVFLAGS_COMMON)
 
 # -------------------------------
-# fft_twiddle_rom_tb settings
+# twiddle_rom_tb settings
 # -------------------------------
-TOP_TW := fft_twiddle_rom_tb
+TOP_TW := twiddle_rom_tb
 TB_TW := $(THIS_DIR)/$(TOP_TW).sv
-RTL_TW := $(ROOT_DIR)/rtl/fft_twiddle_rom.sv
+RTL_TW := $(ROOT_DIR)/rtl/twiddle_rom.sv
 SIMV_TW := $(BUILD_DIR)/$(TOP_TW).vvp
 VCD_TW ?= $(BUILD_DIR)/$(TOP_TW).vcd
 
@@ -96,16 +96,16 @@ IVFLAGS_TW += -P $(TOP_TW).FFT_N=$(FFT_N)
 IVFLAGS_TW += -P $(TOP_TW).TW_W=$(TW_W)
 
 # -------------------------------
-# radix_2_butterfly_tb settings
+# radix2_butterfly_tb settings
 # -------------------------------
-TOP_BUTTERFLY := radix_2_butterfly_tb
+TOP_BUTTERFLY := radix2_butterfly_tb
 TB_BUTTERFLY := $(THIS_DIR)/$(TOP_BUTTERFLY).sv
-RTL_BUTTERFLY := $(ROOT_DIR)/rtl/DSP48E2_like.sv \
-                 $(ROOT_DIR)/rtl/complex_round_clip_q22_23_to_q16_0.sv \
+RTL_BUTTERFLY := $(ROOT_DIR)/rtl/dsp48e2_slice_model.sv \
+                 $(ROOT_DIR)/rtl/complex_requantize_q22_23_to_q16_0.sv \
                  $(ROOT_DIR)/rtl/complex_mul_3dsp.sv \
                  $(ROOT_DIR)/rtl/convergent_rounding.sv \
-                 $(ROOT_DIR)/rtl/shift_register_with_valid.sv \
-                 $(ROOT_DIR)/rtl/symmetric_clip.sv \
+                 $(ROOT_DIR)/rtl/delay_line_with_valid.sv \
+                 $(ROOT_DIR)/rtl/symmetric_saturate.sv \
                  $(ROOT_DIR)/rtl/radix2_butterfly.sv
 SIMV_BUTTERFLY := $(BUILD_DIR)/$(TOP_BUTTERFLY).vvp
 VCD_BUTTERFLY ?= $(BUILD_DIR)/$(TOP_BUTTERFLY).vcd

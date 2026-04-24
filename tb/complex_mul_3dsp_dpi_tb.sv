@@ -1,8 +1,8 @@
 `timescale 1ns/1ps
 
-import radix2_types_pkg::*;
+import complex_fixed_pkg::*;
 
-module complex_mul_3dsp_file_tb #(
+module complex_mul_3dsp_dpi_tb #(
     parameter int RESET_CYCLES = 4,
     parameter int CLK_PERIOD_NS = 10
 );
@@ -53,8 +53,8 @@ module complex_mul_3dsp_file_tb #(
         test_vec_t vec;
         begin
             vec.id = vec_id;
-            vec.x = radix2_types_pkg::bits_to_complex16(x_raw);
-            vec.y = radix2_types_pkg::bits_to_complex16(y_raw);
+            vec.x = complex_fixed_pkg::bits_to_complex16(x_raw);
+            vec.y = complex_fixed_pkg::bits_to_complex16(y_raw);
             make_test_vec = vec;
         end
     endfunction
@@ -89,7 +89,7 @@ module complex_mul_3dsp_file_tb #(
             expected_re = complex33_comp_t'(model_re);
             expected_im = complex33_comp_t'(model_im);
 
-            calc_expected_out = radix2_types_pkg::comp_t_to_complex33(
+            calc_expected_out = complex_fixed_pkg::comp_t_to_complex33(
                 expected_re,
                 expected_im
             );
@@ -243,14 +243,14 @@ module complex_mul_3dsp_file_tb #(
 
     initial begin
         if (!$value$plusargs("dumpfile=%s", dumpfile))
-            dumpfile = "../build/complex_mul_3dsp_file_tb.vcd";
+            dumpfile = "../build/complex_mul_3dsp_dpi_tb.vcd";
 
         if (!$value$plusargs("infile=%s", input_file))
             input_file = "../input/input_complex_vectors.txt";
 
         if ($test$plusargs("dump")) begin
             $dumpfile(dumpfile);
-            $dumpvars(0, complex_mul_3dsp_file_tb);
+            $dumpvars(0, complex_mul_3dsp_dpi_tb);
         end
 
         rst = 1'b1;
@@ -280,7 +280,7 @@ module complex_mul_3dsp_file_tb #(
         $display("DONE: vectors=%0d fails=%0d", vectors_count, fails_count);
 
         if (fails_count != 0)
-            $fatal(1, "complex_mul_3dsp_file_tb: FAILED");
+            $fatal(1, "complex_mul_3dsp_dpi_tb: FAILED");
 
         $finish;
     end

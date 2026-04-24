@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
 
-module symmetric_clip_tb;
+module symmetric_saturate_tb;
 
     localparam int IN_BITS = 5;
     localparam int OUT_BITS = 3;
@@ -23,7 +23,7 @@ module symmetric_clip_tb;
 
     string dumpfile;
 
-    symmetric_clip #(
+    symmetric_saturate #(
         .IWID(IWID),
         .OWID(OWID)
     ) dut (
@@ -93,11 +93,11 @@ module symmetric_clip_tb;
 
     initial begin
         if (!$value$plusargs("dumpfile=%s", dumpfile))
-            dumpfile = "tb/build/symmetric_clip_tb.vcd";
+            dumpfile = "tb/build/symmetric_saturate_tb.vcd";
 
         if ($test$plusargs("dump")) begin
             $dumpfile(dumpfile);
-            $dumpvars(0, symmetric_clip_tb);
+            $dumpvars(0, symmetric_saturate_tb);
             $display("[%0t] VCD enabled: %0s", $time, dumpfile);
         end
     end
@@ -113,7 +113,7 @@ module symmetric_clip_tb;
 
         $display("DONE: tests=%0d fails=%0d", NUM_TESTS, fails_count);
         if (fails_count != 0)
-            $fatal(1, "symmetric_clip_tb: FAILED");
+            $fatal(1, "symmetric_saturate_tb: FAILED");
 
         $finish;
     end

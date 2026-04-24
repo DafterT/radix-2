@@ -1,7 +1,7 @@
 `timescale 1ns/1ps
 
 (* use_dsp = "yes" *)
-module DSP48E2_like #(
+module dsp48e2_slice_model #(
     // preadder: 
     //      0 => D + A 
     //      1 => D - A

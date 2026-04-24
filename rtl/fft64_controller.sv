@@ -1,8 +1,8 @@
 `timescale 1ns/1ps
 
-import radix2_types_pkg::*;
+import complex_fixed_pkg::*;
 
-module radix2_cu
+module fft64_controller
 #(
     parameter int TDATA_W = 32
 )
@@ -30,7 +30,7 @@ module radix2_cu
 
     initial begin
         if (TDATA_W != $bits(complex16_t))
-            $fatal(1, "radix2_cu: TDATA_W must be %0d", $bits(complex16_t));
+            $fatal(1, "fft64_controller: TDATA_W must be %0d", $bits(complex16_t));
     end
 
     typedef enum logic [2:0] {
@@ -192,12 +192,12 @@ module radix2_cu
     assign stage_last_pair   = stage_offset_last && stage_block_last;
 
     assign stage_top_data = read_meta_q.top_bank
-        ? radix2_types_pkg::bits_to_complex16(bank1_dout_b)
-        : radix2_types_pkg::bits_to_complex16(bank0_dout_b);
+        ? complex_fixed_pkg::bits_to_complex16(bank1_dout_b)
+        : complex_fixed_pkg::bits_to_complex16(bank0_dout_b);
 
     assign stage_bottom_data = read_meta_q.bottom_bank
-        ? radix2_types_pkg::bits_to_complex16(bank1_dout_b)
-        : radix2_types_pkg::bits_to_complex16(bank0_dout_b);
+        ? complex_fixed_pkg::bits_to_complex16(bank1_dout_b)
+        : complex_fixed_pkg::bits_to_complex16(bank0_dout_b);
 
     assign bfly_valid_o = read_valid_q;
     assign bfly_a_o     = read_valid_q ? stage_top_data : '0;
@@ -206,7 +206,7 @@ module radix2_cu
     assign bfly_a_writeback_bits = bfly_a_i;
     assign bfly_b_writeback_bits = bfly_b_i;
 
-    shift_register_with_valid #(
+    delay_line_with_valid #(
         .WIDTH(WRITEBACK_META_W),
         .DEPTH(BFLY_LATENCY)
     ) u_writeback_meta_delay (
@@ -218,7 +218,7 @@ module radix2_cu
         .out_data(writeback_meta_bits)
     );
 
-    dual_port_ram #(
+    simple_dual_port_ram #(
         .DEPTH(DEPTH),
         .WIDTH(TDATA_W)
     ) u_bank0_ram (
@@ -231,7 +231,7 @@ module radix2_cu
         .dout (bank0_dout_b)
     );
 
-    dual_port_ram #(
+    simple_dual_port_ram #(
         .DEPTH(DEPTH),
         .WIDTH(TDATA_W)
     ) u_bank1_ram (

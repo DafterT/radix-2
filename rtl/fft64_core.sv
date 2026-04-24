@@ -1,8 +1,8 @@
 `timescale 1ns/1ps
 
-import radix2_types_pkg::*;
+import complex_fixed_pkg::*;
 
-module radix2_fft64
+module fft64_core
 #(
     parameter int TDATA_W = 32
 )
@@ -32,10 +32,10 @@ module radix2_fft64
 
     initial begin
         if (TDATA_W != $bits(complex16_t))
-            $fatal(1, "radix2_fft64: TDATA_W must be %0d", $bits(complex16_t));
+            $fatal(1, "fft64_core: TDATA_W must be %0d", $bits(complex16_t));
     end
 
-    radix2_cu #(
+    fft64_controller #(
         .TDATA_W(TDATA_W)
     ) u_cu (
         .clk          (clk),
@@ -55,7 +55,7 @@ module radix2_fft64
         .bfly_b_i     (bfly_b)
     );
 
-    fft_twiddle_rom #(
+    twiddle_rom #(
         .FFT_N(FFT_N),
         .TW_W (TW_W)
     ) u_twiddle_rom (

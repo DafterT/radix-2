@@ -1,8 +1,8 @@
 `timescale 1ns/1ps
 
-import radix2_types_pkg::*;
+import complex_fixed_pkg::*;
 
-module fft_twiddle_rom_tb #(
+module twiddle_rom_tb #(
     parameter int FFT_N = 64,
     parameter int TW_W = 16,
     parameter int CLK_PERIOD_NS = 10
@@ -21,10 +21,10 @@ module fft_twiddle_rom_tb #(
 
     initial begin
         if (TW_W != $bits(complex16_comp_t))
-            $fatal(1, "fft_twiddle_rom_tb: TW_W must be %0d when using complex16_t", $bits(complex16_comp_t));
+            $fatal(1, "twiddle_rom_tb: TW_W must be %0d when using complex16_t", $bits(complex16_comp_t));
     end
 
-    fft_twiddle_rom #(
+    twiddle_rom #(
         .FFT_N(FFT_N),
         .TW_W(TW_W)
     ) dut (
@@ -44,11 +44,11 @@ module fft_twiddle_rom_tb #(
 
     initial begin
         if (!$value$plusargs("dumpfile=%s", dumpfile))
-            dumpfile = "tb/build/fft_twiddle_rom_tb.vcd";
+            dumpfile = "tb/build/twiddle_rom_tb.vcd";
 
         if ($test$plusargs("dump")) begin
             $dumpfile(dumpfile);
-            $dumpvars(0, fft_twiddle_rom_tb);
+            $dumpvars(0, twiddle_rom_tb);
             $display("[%0t] VCD enabled: %0s", $time, dumpfile);
         end
     end
