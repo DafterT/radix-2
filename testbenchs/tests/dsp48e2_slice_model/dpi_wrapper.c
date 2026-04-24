@@ -1,7 +1,7 @@
 #include <svdpi.h>
 #include <stdio.h>
 
-#include "dsp48e2_like_model.h"
+#include "dsp48e2_slice_model.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -17,7 +17,7 @@ long long dsp48e2_slice_model_dpi_model(
     long long c
 ) {
 
-    return (long long)dsp48e2_like_eval(
+    return (long long)dsp48e2_slice_model_eval(
         (preadd_sub != 0U),
         (postadd_en != 0U),
         (postadd_sub != 0U),

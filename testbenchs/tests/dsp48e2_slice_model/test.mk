@@ -11,8 +11,8 @@ TEST_SV_SRCS_dsp48e2_slice_model := \
 	$(TEST_DIR_dsp48e2_slice_model)/tb.sv \
 	$(ROOT_DIR)/rtl/dsp48e2_slice_model.sv
 TEST_DPI_WRAPPER_dsp48e2_slice_model := $(TEST_DIR_dsp48e2_slice_model)/dpi_wrapper.c
-TEST_MODEL_SRCS_dsp48e2_slice_model := $(ROOT_DIR)/model/dsp48e2_like/dsp48e2_like_model.c
-TEST_MODEL_INC_FLAGS_dsp48e2_slice_model := -I$(ROOT_DIR)/model/dsp48e2_like
+TEST_MODEL_SRCS_dsp48e2_slice_model := $(ROOT_DIR)/model/dsp48e2_slice_model/dsp48e2_slice_model.c
+TEST_MODEL_INC_FLAGS_dsp48e2_slice_model := -I$(ROOT_DIR)/model/dsp48e2_slice_model
 TEST_VERILATOR_FLAGS_dsp48e2_slice_model := \
 	-GPREADD_SUB=$(PREADD_SUB) \
 	-GPOSTADD_EN=$(POSTADD_EN) \

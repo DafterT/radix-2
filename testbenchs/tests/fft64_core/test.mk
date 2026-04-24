@@ -23,10 +23,11 @@ TEST_SV_SRCS_fft64_core := \
 	$(ROOT_DIR)/rtl/symmetric_saturate.sv
 TEST_DPI_WRAPPER_fft64_core := $(TEST_DIR_fft64_core)/dpi_wrapper.c
 TEST_MODEL_SRCS_fft64_core := \
-	$(ROOT_DIR)/model/fft64/fixed_sqrt2/model_fixed.c \
-	$(ROOT_DIR)/model/fft64/fixed_sqrt2/butterfly_fixed.c \
-	$(ROOT_DIR)/model/fft64/tools/fft64_white_noise.c
+	$(ROOT_DIR)/model/fft64_core/fixed_sqrt2/fft64_core_fixed_sqrt2_model.c \
+	$(ROOT_DIR)/model/fft64_core/fixed_sqrt2/fft64_core_fixed_sqrt2_butterfly.c \
+	$(ROOT_DIR)/model/fft64_core/tools/fft64_core_white_noise.c
 TEST_MODEL_INC_FLAGS_fft64_core := \
-	-I$(ROOT_DIR)/model/fft64/fixed_sqrt2 \
-	-I$(ROOT_DIR)/model/fft64/tools
+	-I$(ROOT_DIR)/model/fft64_core \
+	-I$(ROOT_DIR)/model/fft64_core/fixed_sqrt2 \
+	-I$(ROOT_DIR)/model/fft64_core/tools
 TEST_RUN_ARGS_fft64_core := +frames=$(FRAMES) +seed=$(SEED) +backoff_db=$(BACKOFF_DB)
