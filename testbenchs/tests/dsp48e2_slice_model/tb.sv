@@ -286,10 +286,10 @@ module dsp48e2_slice_model_dpi_tb #(
 
     initial begin
         if (!$value$plusargs("dumpfile=%s", dumpfile))
-            dumpfile = "../build/dsp48e2_slice_model_dpi_tb.vcd";
+            dumpfile = "build/waves/dsp48e2_slice_model.vcd";
 
         if (!$value$plusargs("infile=%s", input_file))
-            input_file = "../input/input_vectors.txt";
+            input_file = "tests/dsp48e2_slice_model/input.txt";
 
         if ($test$plusargs("dump")) begin
             $dumpfile(dumpfile);

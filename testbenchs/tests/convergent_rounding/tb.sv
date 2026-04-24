@@ -105,7 +105,7 @@ module convergent_rounding_tb;
 
     initial begin
         if (!$value$plusargs("dumpfile=%s", dumpfile))
-            dumpfile = "tb/build/convergent_rounding_tb.vcd";
+            dumpfile = "build/waves/convergent_rounding.vcd";
 
         if ($test$plusargs("dump")) begin
             $dumpfile(dumpfile);

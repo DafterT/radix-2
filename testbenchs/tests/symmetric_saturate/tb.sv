@@ -93,7 +93,7 @@ module symmetric_saturate_tb;
 
     initial begin
         if (!$value$plusargs("dumpfile=%s", dumpfile))
-            dumpfile = "tb/build/symmetric_saturate_tb.vcd";
+            dumpfile = "build/waves/symmetric_saturate.vcd";
 
         if ($test$plusargs("dump")) begin
             $dumpfile(dumpfile);

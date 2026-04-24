@@ -142,7 +142,7 @@ module radix2_butterfly_tb #(
 
     initial begin
         if (!$value$plusargs("dumpfile=%s", dumpfile))
-            dumpfile = "tb/build/radix2_butterfly_tb.vcd";
+            dumpfile = "build/waves/radix2_butterfly.vcd";
 
         if ($test$plusargs("dump")) begin
             $dumpfile(dumpfile);

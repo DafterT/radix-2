@@ -44,7 +44,7 @@ module twiddle_rom_tb #(
 
     initial begin
         if (!$value$plusargs("dumpfile=%s", dumpfile))
-            dumpfile = "tb/build/twiddle_rom_tb.vcd";
+            dumpfile = "build/waves/twiddle_rom.vcd";
 
         if ($test$plusargs("dump")) begin
             $dumpfile(dumpfile);

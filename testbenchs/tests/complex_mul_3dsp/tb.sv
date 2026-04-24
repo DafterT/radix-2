@@ -70,10 +70,8 @@ module complex_mul_3dsp_dpi_tb #(
     endfunction
 
     function automatic complex33_t calc_expected_out(input test_vec_t vec);
-        /* verilator lint_off UNUSEDSIGNAL */
         longint signed model_re;
         longint signed model_im;
-        /* verilator lint_on UNUSEDSIGNAL */
         complex33_comp_t expected_re;
         complex33_comp_t expected_im;
         begin
@@ -243,10 +241,10 @@ module complex_mul_3dsp_dpi_tb #(
 
     initial begin
         if (!$value$plusargs("dumpfile=%s", dumpfile))
-            dumpfile = "../build/complex_mul_3dsp_dpi_tb.vcd";
+            dumpfile = "build/waves/complex_mul_3dsp.vcd";
 
         if (!$value$plusargs("infile=%s", input_file))
-            input_file = "../input/input_complex_vectors.txt";
+            input_file = "tests/complex_mul_3dsp/input.txt";
 
         if ($test$plusargs("dump")) begin
             $dumpfile(dumpfile);

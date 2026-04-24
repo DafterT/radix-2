@@ -3,8 +3,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define FIXED_STAGE_STIM_FILE "../tb/input/fixed_stage_stim.txt"
-
 typedef struct {
     int valid;
     int last;
@@ -40,11 +38,14 @@ static int fixed_stage_read_stim(FILE *stim_file, fixed_stage_stim_t *stim) {
 }
 
 int main(int argc, char **argv) {
-    const char *stim_path = FIXED_STAGE_STIM_FILE;
+    const char *stim_path = NULL;
     fixed_stage_model_t model = {0};
 
     if (argc > 1) {
         stim_path = argv[1];
+    } else {
+        fprintf(stderr, "Usage: %s <stimulus-file>\n", argv[0]);
+        return EXIT_FAILURE;
     }
 
     FILE *stim_file = fopen(stim_path, "r");
