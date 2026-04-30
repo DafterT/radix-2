@@ -10,6 +10,10 @@
 #define STAGE_COMPARE_RUNS 100
 #endif
 
+#ifndef STAGE_COMPARE_PRINT_RUNS
+#define STAGE_COMPARE_PRINT_RUNS 1
+#endif
+
 #include "../fixed/radix2_butterfly_fixed_model.h"
 #include "../reference/radix2_butterfly_reference_model.h"
 
@@ -101,7 +105,9 @@ int main(void) {
         double signal_power = 0.0;
         double noise_power = 0.0;
 
-        printf("run=%d\n", run);
+        if (STAGE_COMPARE_PRINT_RUNS) {
+            printf("run=%d\n", run);
+        }
 
         for (int call = 0; call < STAGE_CALLS_PER_RUN; ++call) {
             int last_i = (call == (STAGE_CALLS_PER_RUN - 1));
@@ -126,25 +132,29 @@ int main(void) {
             noise_power += compare_cpx_power(err_a);
             noise_power += compare_cpx_power(err_b);
 
-            printf(" call=%d last=%d\n", call, last_i);
-            compare_print_fixed_cpx("a_i", a_fixed);
-            compare_print_fixed_cpx("b_i", b_fixed);
-            compare_print_double_cpx("fixed_a_o", fixed_a);
-            compare_print_double_cpx("ref_a_o", reference_out.a);
-            compare_print_double_cpx("err_a_o", err_a);
-            compare_print_double_cpx("fixed_b_o", fixed_b);
-            compare_print_double_cpx("ref_b_o", reference_out.b);
-            compare_print_double_cpx("err_b_o", err_b);
-            printf("\n");
+            if (STAGE_COMPARE_PRINT_RUNS) {
+                printf(" call=%d last=%d\n", call, last_i);
+                compare_print_fixed_cpx("a_i", a_fixed);
+                compare_print_fixed_cpx("b_i", b_fixed);
+                compare_print_double_cpx("fixed_a_o", fixed_a);
+                compare_print_double_cpx("ref_a_o", reference_out.a);
+                compare_print_double_cpx("err_a_o", err_a);
+                compare_print_double_cpx("fixed_b_o", fixed_b);
+                compare_print_double_cpx("ref_b_o", reference_out.b);
+                compare_print_double_cpx("err_b_o", err_b);
+                printf("\n");
+            }
         }
 
         double run_sqnr_db = compare_sqnr_db(signal_power, noise_power);
 
         sqnr_sum_db += run_sqnr_db;
 
-        printf(" run_signal_power = %.3f\n", signal_power);
-        printf(" run_error_power  = %.3f\n", noise_power);
-        printf(" run_sqnr         = %.3f dB\n\n", run_sqnr_db);
+        if (STAGE_COMPARE_PRINT_RUNS) {
+            printf(" run_signal_power = %.3f\n", signal_power);
+            printf(" run_error_power  = %.3f\n", noise_power);
+            printf(" run_sqnr         = %.3f dB\n\n", run_sqnr_db);
+        }
     }
 
     printf("Average SQNR       = %.3f dB\n", sqnr_sum_db / (double)STAGE_COMPARE_RUNS);
