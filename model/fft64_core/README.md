@@ -12,6 +12,12 @@ make -C model run-fft64_core_reference
 make -C model run-fft64_core_fixed_compare
 ```
 
+Запуск backoff sweep-графиков:
+
+```bash
+python3 model/fft64_core/tools/plot_fft64_core_backoff_sweep.py
+```
+
 Опциональное сравнение reference-модели с FFTW3:
 
 ```bash

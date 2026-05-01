@@ -157,32 +157,46 @@ def write_csv(rows: list[dict[str, float]], output_path: Path) -> None:
         writer.writerows(rows)
 
 
-def plot_rows(rows: list[dict[str, float]], output_path: Path, title: str) -> None:
-    fig, axes = plt.subplots(len(METRICS), 1, figsize=(12, 12), sharex=True)
-
+def plot_metric(
+    rows: list[dict[str, float]],
+    metric_key: str,
+    metric_label: str,
+    output_path: Path,
+    title: str,
+) -> None:
+    fig, axis = plt.subplots(figsize=(12, 5))
     backoffs = [row["backoff_db"] for row in rows]
 
-    for axis, (metric_key, metric_label) in zip(axes, METRICS):
-        for method in METHODS:
-            values = [row[f"{method}_{metric_key}"] for row in rows]
-            axis.plot(
-                backoffs,
-                values,
-                marker="o",
-                markersize=3,
-                linewidth=1.5,
-                label=method,
-                color=METHOD_COLORS[method],
-            )
-        axis.set_ylabel(metric_label)
-        axis.grid(True, alpha=0.3)
-
-    axes[0].legend(loc="best")
-    axes[-1].set_xlabel("WHITE_NOISE_BACKOFF_DB, dB")
+    for method in METHODS:
+        values = [row[f"{method}_{metric_key}"] for row in rows]
+        axis.plot(
+            backoffs,
+            values,
+            marker="o",
+            markersize=3,
+            linewidth=1.5,
+            label=method,
+            color=METHOD_COLORS[method],
+        )
+    axis.set_xlabel("WHITE_NOISE_BACKOFF_DB, dB")
+    axis.set_ylabel(metric_label)
+    axis.grid(True, alpha=0.3)
+    axis.legend(loc="best")
     fig.suptitle(title)
     fig.tight_layout()
     fig.savefig(output_path, dpi=180)
     plt.close(fig)
+
+
+def plot_rows(rows: list[dict[str, float]], output_prefix: Path, title: str) -> None:
+    for metric_key, metric_label in METRICS:
+        plot_metric(
+            rows,
+            metric_key,
+            metric_label,
+            output_prefix.with_name(f"{output_prefix.name}_{metric_key}.png"),
+            f"{title}: {metric_label}",
+        )
 
 
 def main() -> int:
@@ -205,7 +219,7 @@ def main() -> int:
     write_csv(rows, output_dir / "fft64_core_backoff_sweep.csv")
     plot_rows(
         rows,
-        output_dir / "fft64_core_backoff_sweep_full.png",
+        output_dir / "fft64_core_backoff_sweep_full",
         f"fft64_core Fixed Compare Sweep: {args.start}..{args.stop} dB",
     )
 
@@ -217,7 +231,7 @@ def main() -> int:
     if zoom_rows:
         plot_rows(
             zoom_rows,
-            output_dir / "fft64_core_backoff_sweep_zoom_8_20.png",
+            output_dir / "fft64_core_backoff_sweep_zoom_8_20",
             f"fft64_core Fixed Compare Sweep: {args.zoom_start}..{args.zoom_stop} dB",
         )
 
