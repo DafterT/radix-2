@@ -110,3 +110,6 @@ Thumbs.db
 # Logs
 *.log
 obj_dir
+
+# draw.io
+*.bkp
