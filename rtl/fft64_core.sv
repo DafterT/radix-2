@@ -20,6 +20,8 @@ module fft64_core
     localparam int FFT_N     = 64;
     localparam int TW_W      = $bits(complex16_comp_t);
     localparam int TW_ADDR_W = $clog2(FFT_N / 2);
+    localparam int DEPTH     = FFT_N / 2;
+    localparam int ADDR_W    = $clog2(DEPTH);
 
     logic [TW_ADDR_W-1:0] twiddle_addr;
     complex16_t           twiddle_w;
@@ -29,6 +31,18 @@ module fft64_core
     logic                 bfly_valid;
     complex16_t           bfly_a;
     complex16_t           bfly_b;
+    logic                 bank0_we_a;
+    logic [ADDR_W-1:0]    bank0_addr_a;
+    logic [TDATA_W-1:0]   bank0_din_a;
+    logic                 bank0_re_b;
+    logic [ADDR_W-1:0]    bank0_addr_b;
+    logic [TDATA_W-1:0]   bank0_dout_b;
+    logic                 bank1_we_a;
+    logic [ADDR_W-1:0]    bank1_addr_a;
+    logic [TDATA_W-1:0]   bank1_din_a;
+    logic                 bank1_re_b;
+    logic [ADDR_W-1:0]    bank1_addr_b;
+    logic [TDATA_W-1:0]   bank1_dout_b;
 
     initial begin
         if (TDATA_W != $bits(complex16_t))
@@ -52,7 +66,45 @@ module fft64_core
         .bfly_b_o     (cu_bfly_b),
         .bfly_valid_i (bfly_valid),
         .bfly_a_i     (bfly_a),
-        .bfly_b_i     (bfly_b)
+        .bfly_b_i     (bfly_b),
+        .bank0_we_a   (bank0_we_a),
+        .bank0_addr_a (bank0_addr_a),
+        .bank0_din_a  (bank0_din_a),
+        .bank0_re_b   (bank0_re_b),
+        .bank0_addr_b (bank0_addr_b),
+        .bank0_dout_b (bank0_dout_b),
+        .bank1_we_a   (bank1_we_a),
+        .bank1_addr_a (bank1_addr_a),
+        .bank1_din_a  (bank1_din_a),
+        .bank1_re_b   (bank1_re_b),
+        .bank1_addr_b (bank1_addr_b),
+        .bank1_dout_b (bank1_dout_b)
+    );
+
+    simple_dual_port_ram #(
+        .DEPTH(DEPTH),
+        .WIDTH(TDATA_W)
+    ) u_bank0_ram (
+        .clk  (clk),
+        .we   (bank0_we_a),
+        .waddr(bank0_addr_a),
+        .din  (bank0_din_a),
+        .re   (bank0_re_b),
+        .raddr(bank0_addr_b),
+        .dout (bank0_dout_b)
+    );
+
+    simple_dual_port_ram #(
+        .DEPTH(DEPTH),
+        .WIDTH(TDATA_W)
+    ) u_bank1_ram (
+        .clk  (clk),
+        .we   (bank1_we_a),
+        .waddr(bank1_addr_a),
+        .din  (bank1_din_a),
+        .re   (bank1_re_b),
+        .raddr(bank1_addr_b),
+        .dout (bank1_dout_b)
     );
 
     twiddle_rom #(

@@ -25,7 +25,19 @@ module fft64_controller
     output complex16_t         bfly_b_o,
     input  logic               bfly_valid_i,
     input  complex16_t         bfly_a_i,
-    input  complex16_t         bfly_b_i
+    input  complex16_t         bfly_b_i,
+    output logic               bank0_we_a,
+    output logic [4:0]         bank0_addr_a,
+    output logic [TDATA_W-1:0] bank0_din_a,
+    output logic               bank0_re_b,
+    output logic [4:0]         bank0_addr_b,
+    input  logic [TDATA_W-1:0] bank0_dout_b,
+    output logic               bank1_we_a,
+    output logic [4:0]         bank1_addr_a,
+    output logic [TDATA_W-1:0] bank1_din_a,
+    output logic               bank1_re_b,
+    output logic [4:0]         bank1_addr_b,
+    input  logic [TDATA_W-1:0] bank1_dout_b
 );
 
     initial begin
@@ -115,18 +127,6 @@ module fft64_controller
     logic [INDEX_W:0]       stage_block_limit;
     logic                   stage_block_last;
     logic                   stage_last_pair;
-    logic [TDATA_W-1:0]     bank0_dout_b;
-    logic [TDATA_W-1:0]     bank1_dout_b;
-    logic                   bank0_we_a;
-    logic [ADDR_W-1:0]      bank0_addr_a;
-    logic [TDATA_W-1:0]     bank0_din_a;
-    logic                   bank0_re_b;
-    logic [ADDR_W-1:0]      bank0_addr_b;
-    logic                   bank1_we_a;
-    logic [ADDR_W-1:0]      bank1_addr_a;
-    logic [TDATA_W-1:0]     bank1_din_a;
-    logic                   bank1_re_b;
-    logic [ADDR_W-1:0]      bank1_addr_b;
     logic [WRITEBACK_META_W-1:0] writeback_meta_bits;
     writeback_meta_t        writeback_meta;
     logic                   writeback_meta_valid;
@@ -216,32 +216,6 @@ module fft64_controller
         .in_data (read_meta_q),
         .out_vld (writeback_meta_valid),
         .out_data(writeback_meta_bits)
-    );
-
-    simple_dual_port_ram #(
-        .DEPTH(DEPTH),
-        .WIDTH(TDATA_W)
-    ) u_bank0_ram (
-        .clk  (clk),
-        .we   (bank0_we_a),
-        .waddr(bank0_addr_a),
-        .din  (bank0_din_a),
-        .re   (bank0_re_b),
-        .raddr(bank0_addr_b),
-        .dout (bank0_dout_b)
-    );
-
-    simple_dual_port_ram #(
-        .DEPTH(DEPTH),
-        .WIDTH(TDATA_W)
-    ) u_bank1_ram (
-        .clk  (clk),
-        .we   (bank1_we_a),
-        .waddr(bank1_addr_a),
-        .din  (bank1_din_a),
-        .re   (bank1_re_b),
-        .raddr(bank1_addr_b),
-        .dout (bank1_dout_b)
     );
 
     always_ff @(posedge clk) begin
